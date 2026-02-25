@@ -1,26 +1,89 @@
-import { integer, pgSchema, serial, text, timestamp } from 'drizzle-orm/pg-core'
+import {
+  boolean,
+  integer,
+  numeric,
+  pgSchema,
+  text,
+  timestamp,
+  uuid,
+} from 'drizzle-orm/pg-core'
 
 export const appSchema = pgSchema('sfbb-merch')
 
-// export const usersTable = appSchema.table.withRLS('users_table', {
-//   id: serial('id').primaryKey(),
-//   name: text('name').notNull(),
-//   age: integer('age').notNull(),
-//   email: text('email').notNull().unique(),
-// })
+const timestamps = {
+  updated_at: timestamp(),
+  created_at: timestamp().notNull().defaultNow(),
+  deleted_at: timestamp(),
+}
 
-// export const postsTable = appSchema.table.withRLS('posts_table', {
-//   id: serial('id').primaryKey(),
-//   title: text('title').notNull(),
-//   content: text('content').notNull(),
-//   userId: integer('user_id')
-//     .notNull()
-//     .references(() => usersTable.id, { onDelete: 'cascade' }),
-//   createdAt: timestamp('created_at').notNull().defaultNow(),
-//   updatedAt: timestamp('updated_at')
-//     .notNull()
-//     .$onUpdate(() => new Date()),
-// })
+export const seasons = appSchema.table('seasons', {
+  id: uuid().primaryKey().defaultRandom(),
+  name: text().notNull(),
+  startDate: timestamp({ withTimezone: true }).notNull(),
+  endDate: timestamp({ withTimezone: true }).notNull(),
+  isActive: boolean().notNull().default(false),
+  ...timestamps,
+})
+
+export const products = appSchema.table('products', {
+  id: uuid().primaryKey().defaultRandom(),
+  seasonId: uuid()
+    .references(() => seasons.id)
+    .notNull(),
+  name: text().notNull(),
+  description: text(),
+  supplierModelId: text().notNull(),
+  allowsPersonalization: boolean().notNull().default(false),
+  ...timestamps,
+})
+
+export const productColors = appSchema.table('product_colors', {
+  id: uuid().primaryKey().defaultRandom(),
+  productId: uuid()
+    .references(() => products.id)
+    .notNull(),
+  name: text().notNull(),
+  imageUrl: text(),
+  ...timestamps,
+})
+
+export const productVariants = appSchema.table('product_variants', {
+  id: uuid().primaryKey().defaultRandom(),
+  productId: uuid()
+    .references(() => products.id)
+    .notNull(),
+  colorId: uuid()
+    .references(() => productColors.id)
+    .notNull(),
+  size: text().notNull(),
+  price: numeric().notNull(),
+  ...timestamps,
+})
+
+export const orders = appSchema.table('orders', {
+  id: uuid().primaryKey().defaultRandom(),
+  seasonId: uuid()
+    .references(() => seasons.id)
+    .notNull(),
+  customerName: text().notNull(),
+  customerEmail: text().notNull(),
+  status: text().notNull(),
+  token: uuid().defaultRandom().unique().notNull(),
+  ...timestamps,
+})
+
+export const orderItems = appSchema.table('order_items', {
+  id: uuid().primaryKey().defaultRandom(),
+  orderId: uuid()
+    .references(() => orders.id)
+    .notNull(),
+  variantId: uuid().references(() => productVariants.id),
+  quantity: integer().notNull(),
+  personalization: text(),
+  priceAtPurchase: numeric().notNull(),
+  ...timestamps,
+})
+
 // export type InsertUser = typeof usersTable.$inferInsert
 // export type SelectUser = typeof usersTable.$inferSelect
 
