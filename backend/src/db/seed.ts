@@ -7,16 +7,23 @@ import { requireEnv } from '../config/env.js'
 import {
   orderItems,
   orders,
-  productColors,
   products,
   productVariants,
   seasons,
 } from './schema.js'
 
 const client = postgres(requireEnv('DATABASE_URL'))
-const db = drizzle({ client })
+const db = drizzle({ client, casing: 'snake_case' })
 
 async function main() {
+  console.log('Resetting database...')
+
+  await db.delete(orderItems)
+  await db.delete(orders)
+  await db.delete(productVariants)
+  await db.delete(products)
+  await db.delete(seasons)
+
   console.log('Seeding database...')
 
   // ── Seasons ───────────────────────────────────────────
@@ -63,39 +70,27 @@ async function main() {
     throw new Error('Failed to create products')
   }
 
-  // ── Colors ────────────────────────────────────────────
-  const [teeNavy, teeBlack, teeCrimson, teeSand] = await db
-    .insert(productColors)
-    .values([
-      { productId: tee.id, name: 'Navy', imageUrl: null },
-      { productId: tee.id, name: 'Black', imageUrl: null },
-      { productId: tee.id, name: 'Crimson', imageUrl: null },
-      { productId: tee.id, name: 'Sand', imageUrl: null },
-    ])
-    .returning()
-
-  const [jacketBlack, jacketSlate, jacketNavy] = await db
-    .insert(productColors)
-    .values([
-      { productId: jacket.id, name: 'Black', imageUrl: null },
-      { productId: jacket.id, name: 'Slate', imageUrl: null },
-      { productId: jacket.id, name: 'Navy', imageUrl: null },
-    ])
-    .returning()
-
-  console.log('✓ Colors created')
-
   // ── Variants ──────────────────────────────────────────
   const teeSizes = ['S', 'M', 'L', 'XL', '2XL']
   const jacketSizes = ['S', 'M', 'L', 'XL']
-  const teeColors = [teeNavy, teeBlack, teeCrimson, teeSand]
-  const jacketColors = [jacketBlack, jacketSlate, jacketNavy]
+  const teeColors = [
+    { name: 'Navy', imageUrl: null },
+    { name: 'Black', imageUrl: null },
+    { name: 'Crimson', imageUrl: null },
+    { name: 'Sand', imageUrl: null },
+  ]
+  const jacketColors = [
+    { name: 'Black', imageUrl: null },
+    { name: 'Slate', imageUrl: null },
+    { name: 'Navy', imageUrl: null },
+  ]
 
   await db.insert(productVariants).values([
     ...teeColors.flatMap((color) =>
       teeSizes.map((size) => ({
         productId: tee.id,
-        colorId: color!.id,
+        color: color.name,
+        imageUrl: color.imageUrl,
         size,
         price: '28.00',
       })),
@@ -103,7 +98,8 @@ async function main() {
     ...jacketColors.flatMap((color) =>
       jacketSizes.map((size) => ({
         productId: jacket.id,
-        colorId: color!.id,
+        color: color.name,
+        imageUrl: color.imageUrl,
         size,
         price: '68.00',
       })),
@@ -146,9 +142,6 @@ async function main() {
   // ── Order Items ───────────────────────────────────────
   // Fetch some variants to use
   const allVariants = await db.select().from(productVariants)
-
-  const getVariant = (productId: string, colorName: string, size: string) =>
-    allVariants.find((v) => v.productId === productId && v.size === size)
 
   await db.insert(orderItems).values([
     // Sarah — tee + jacket

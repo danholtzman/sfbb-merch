@@ -37,25 +37,14 @@ export const products = appSchema.table.withRLS('products', {
   ...timestamps,
 })
 
-export const productColors = appSchema.table.withRLS('product_colors', {
-  id: uuid().primaryKey().defaultRandom(),
-  productId: uuid()
-    .references(() => products.id)
-    .notNull(),
-  name: text().notNull(),
-  imageUrl: text(),
-  ...timestamps,
-})
-
 export const productVariants = appSchema.table.withRLS('product_variants', {
   id: uuid().primaryKey().defaultRandom(),
   productId: uuid()
     .references(() => products.id)
     .notNull(),
-  colorId: uuid()
-    .references(() => productColors.id)
-    .notNull(),
+  color: text().notNull(),
   size: text().notNull(),
+  imageUrl: text(),
   price: numeric().notNull(),
   ...timestamps,
 })
