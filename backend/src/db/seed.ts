@@ -1,3 +1,5 @@
+// biome-ignore-all lint/style/noNonNullAssertion: 'seed script'
+
 import 'dotenv/config'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'

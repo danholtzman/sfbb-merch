@@ -10,4 +10,5 @@ export default defineConfig({
     url: requireEnv('DATABASE_URL'),
   },
   schemaFilter: ['sfbb-merch'],
+  casing: 'snake_case',
 })

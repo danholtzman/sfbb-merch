@@ -11,12 +11,12 @@ import {
 export const appSchema = pgSchema('sfbb-merch')
 
 const timestamps = {
-  updated_at: timestamp(),
-  created_at: timestamp().notNull().defaultNow(),
-  deleted_at: timestamp(),
+  updatedAt: timestamp(),
+  createdAt: timestamp().notNull().defaultNow(),
+  deletedAt: timestamp(),
 }
 
-export const seasons = appSchema.table('seasons', {
+export const seasons = appSchema.table.withRLS('seasons', {
   id: uuid().primaryKey().defaultRandom(),
   name: text().notNull(),
   startDate: timestamp({ withTimezone: true }).notNull(),
@@ -25,7 +25,7 @@ export const seasons = appSchema.table('seasons', {
   ...timestamps,
 })
 
-export const products = appSchema.table('products', {
+export const products = appSchema.table.withRLS('products', {
   id: uuid().primaryKey().defaultRandom(),
   seasonId: uuid()
     .references(() => seasons.id)
@@ -37,7 +37,7 @@ export const products = appSchema.table('products', {
   ...timestamps,
 })
 
-export const productColors = appSchema.table('product_colors', {
+export const productColors = appSchema.table.withRLS('product_colors', {
   id: uuid().primaryKey().defaultRandom(),
   productId: uuid()
     .references(() => products.id)
@@ -47,7 +47,7 @@ export const productColors = appSchema.table('product_colors', {
   ...timestamps,
 })
 
-export const productVariants = appSchema.table('product_variants', {
+export const productVariants = appSchema.table.withRLS('product_variants', {
   id: uuid().primaryKey().defaultRandom(),
   productId: uuid()
     .references(() => products.id)
@@ -60,7 +60,7 @@ export const productVariants = appSchema.table('product_variants', {
   ...timestamps,
 })
 
-export const orders = appSchema.table('orders', {
+export const orders = appSchema.table.withRLS('orders', {
   id: uuid().primaryKey().defaultRandom(),
   seasonId: uuid()
     .references(() => seasons.id)
@@ -72,7 +72,7 @@ export const orders = appSchema.table('orders', {
   ...timestamps,
 })
 
-export const orderItems = appSchema.table('order_items', {
+export const orderItems = appSchema.table.withRLS('order_items', {
   id: uuid().primaryKey().defaultRandom(),
   orderId: uuid()
     .references(() => orders.id)
