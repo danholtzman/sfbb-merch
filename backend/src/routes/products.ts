@@ -9,7 +9,7 @@ productsRouter.get('/:productId/variants', async (req, res) => {
   try {
     const variants = await getVariantsForProduct(productId)
     res.json(variants)
-  } catch (error) {
+  } catch (_error) {
     res.status(404).json({ error: 'No variants found for this product' })
   }
 })

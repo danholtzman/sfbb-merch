@@ -3,7 +3,7 @@ import { getProductsForSeasonId, getSeasons } from '../models/seasons.js'
 
 export const seasonsRouter: Router = Router()
 
-seasonsRouter.get('/', async (req, res) => {
+seasonsRouter.get('/', async (_req, res) => {
   res.json(await getSeasons())
 })
 
@@ -13,7 +13,7 @@ seasonsRouter.get('/:seasonId/products', async (req, res) => {
   try {
     const seasonProducts = await getProductsForSeasonId(seasonId)
     res.json(seasonProducts)
-  } catch (error) {
+  } catch (_error) {
     res.status(404).json({ error: 'No products found for this season' })
   }
 })
