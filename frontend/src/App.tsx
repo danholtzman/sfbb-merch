@@ -1,7 +1,14 @@
-import { ComponentExample } from '@/components/component-example'
+import { ThemeProvider } from '@/components/theme-provider'
+import { ThemeToggle } from './components/theme-toggle'
+import OrderPage from './pages/order-Page'
 
-export function App() {
-  return <ComponentExample />
+function App() {
+  return (
+    <ThemeProvider defaultTheme="dark" storageKey="sfbb-merch-ui-theme">
+      {/* <ThemeToggle /> */}
+      <OrderPage />
+    </ThemeProvider>
+  )
 }
 
 export default App
