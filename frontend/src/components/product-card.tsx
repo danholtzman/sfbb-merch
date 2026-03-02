@@ -51,7 +51,7 @@ function ProductCard({
         <div className="bg-muted grow p-8">
           <div className="font-mono text-xs">Model {supplierModelId}</div>
           <h1 className="text-xl mb-2">{name}</h1>
-          <div className="text-lg text-red-300 mb-8">$28.00</div>
+          <div className="text-2xl text-red-400 mb-8">$28.00</div>
           <form className="font-mono">
             <div className="mb-4">
               <div className="font-mono uppercase text-xs mb-2">Color</div>
