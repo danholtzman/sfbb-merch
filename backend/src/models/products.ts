@@ -11,13 +11,15 @@ export const getVariantsForProduct = async (productId: string) => {
 
 export const getProductWithVariants = async (productId: string) => {
   const variants = await getVariantsForProduct(productId)
+
   const product = await db
     .select()
     .from(products)
     .where(eq(products.id, productId))
+    .limit(1)
 
   return {
-    ...product,
+    ...product[0],
     variants,
   }
 }
