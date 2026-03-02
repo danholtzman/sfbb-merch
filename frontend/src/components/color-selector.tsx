@@ -10,13 +10,13 @@ function ColorSelector({
   onSelect,
 }: ColorSelectorProps) {
   return (
-    <div className="flex gap-2">
+    <div className="flex gap-4">
       {colors.map((color) => {
         return (
           <button
             key={color}
             type="button"
-            className={`${color === selectedColor ? 'ring-2' : ''} w-4 h-4 rounded-full inline-block cursor-pointer`}
+            className={`${color === selectedColor ? 'ring-2' : ''} w-8 h-8 rounded-full inline-block cursor-pointer`}
             style={{ backgroundColor: color }}
             onClick={() => onSelect(color)}
           />
