@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/card'
 import imgUrl from '../assets/unnamed.jpg'
 import ColorSelector from './color-selector'
+import QuantitySelector from './quantity-selector'
 import SizeSelector from './size-selector'
 import { Button } from './ui/button'
 
@@ -38,6 +39,8 @@ function ProductCard({
 }: ProductCardProps) {
   const [selectedColor, setSelectedColor] = useState(colors[0])
   const [selectedSize, setSelectedSize] = useState(sizes[0])
+  const [quantity, setQuantity] = useState(0)
+
   return (
     <Card className="w-full p-0">
       <CardContent className="h-full flex flex-row justify-evenly p-0">
@@ -51,6 +54,7 @@ function ProductCard({
           <div className="text-lg text-red-300 mb-8">$28.00</div>
           <form className="font-mono">
             <div className="mb-4">
+              <div className="font-mono uppercase text-xs mb-2">Color</div>
               <ColorSelector
                 colors={colors}
                 selectedColor={selectedColor}
@@ -58,6 +62,7 @@ function ProductCard({
               />
             </div>
             <div className="mb-4">
+              <div className="font-mono uppercase text-xs mb-2">Size</div>
               <SizeSelector
                 sizes={sizes}
                 selectedSize={selectedSize}
@@ -66,15 +71,11 @@ function ProductCard({
             </div>
             <div className="mb-8">
               <div className="font-mono uppercase text-xs mb-2">Quantity</div>
-              <div>
-                <Button variant="outline" className="px-4">
-                  -
-                </Button>
-                <span className="mx-4">1</span>
-                <Button variant="outline" className="px-4">
-                  +
-                </Button>
-              </div>
+              <QuantitySelector
+                quantity={quantity}
+                onAdd={() => setQuantity(quantity + 1)}
+                onSubtract={() => setQuantity(Math.max(0, quantity - 1))}
+              />
             </div>
             <Button className="max-w-full/50 block">+ Add to Order</Button>
           </form>
