@@ -74,22 +74,30 @@ async function main() {
   const teeSizes = ['S', 'M', 'L', 'XL', '2XL']
   const jacketSizes = ['S', 'M', 'L', 'XL']
   const teeColors = [
-    { name: 'Navy', imageUrl: null },
-    { name: 'Black', imageUrl: null },
-    { name: 'Crimson', imageUrl: null },
-    { name: 'Sand', imageUrl: null },
+    {
+      hexCode: '#584670',
+      imageUrl:
+        'http://127.0.0.1:54321/storage/v1/object/public/images/merch-2025/mens-purple.jpg',
+    },
+    {
+      hexCode: '#2F2F2F',
+      imageUrl:
+        'http://127.0.0.1:54321/storage/v1/object/public/images/merch-2025/mens-dark-gray.jpg',
+    },
   ]
   const jacketColors = [
-    { name: 'Black', imageUrl: null },
-    { name: 'Slate', imageUrl: null },
-    { name: 'Navy', imageUrl: null },
+    {
+      hexCode: '#1E2020',
+      imageUrl:
+        'http://127.0.0.1:54321/storage/v1/object/public/images/merch-2025/mens-jacket-crosshatch.png',
+    },
   ]
 
   await db.insert(productVariants).values([
     ...teeColors.flatMap((color) =>
       teeSizes.map((size) => ({
         productId: tee.id,
-        color: color.name,
+        color: color.hexCode,
         imageUrl: color.imageUrl,
         size,
         price: '28.00',
@@ -98,7 +106,7 @@ async function main() {
     ...jacketColors.flatMap((color) =>
       jacketSizes.map((size) => ({
         productId: jacket.id,
-        color: color.name,
+        color: color.hexCode,
         imageUrl: color.imageUrl,
         size,
         price: '68.00',
