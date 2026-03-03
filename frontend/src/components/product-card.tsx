@@ -8,18 +8,10 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import imgUrl from '../assets/unnamed.jpg'
 import ColorSelector from './color-selector'
 import QuantitySelector from './quantity-selector'
 import SizeSelector from './size-selector'
 import { Button } from './ui/button'
-
-type ProductVariant = {
-  color: string
-  size: string
-  imageUrl: string
-  price: string
-}
 
 type ProductCardProps = {
   name: string
@@ -28,6 +20,7 @@ type ProductCardProps = {
   colors: string[]
   sizes: string[]
   price: string
+  imageUrl: string
 }
 
 function ProductCard({
@@ -36,6 +29,7 @@ function ProductCard({
   supplierModelId,
   colors,
   sizes,
+  imageUrl,
 }: ProductCardProps) {
   const [selectedColor, setSelectedColor] = useState(colors[0])
   const [selectedSize, setSelectedSize] = useState(sizes[0])
@@ -46,7 +40,7 @@ function ProductCard({
       <CardContent className="h-full flex flex-row justify-evenly p-0">
         <div
           className="bg-cover bg-center bg-no-repeat min-w-110"
-          style={{ backgroundImage: `url(${imgUrl})` }}
+          style={{ backgroundImage: `url(${imageUrl})` }}
         />
         <div className="bg-muted grow p-8">
           <div className="font-mono text-xs">Model {supplierModelId}</div>

@@ -1,21 +1,27 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import HeroBar from '@/components/hero-bar'
 import NavBar from '@/components/nav-bar'
 import ProductCard from '@/components/product-card'
+
+type ProductVariant = {
+  color: string
+  size: string
+  imageUrl: string
+  price: string
+}
 
 type Product = {
   id: string
   description: string
   name: string
   supplierModelId: string
-  variants: []
+  variants: ProductVariant[]
 }
+
+function getProductVariant(product: Product, color: string, size: string) {}
 
 function OrderPage() {
   const [products, setProducts] = useState<Product[]>([])
-  // const colors = productVariants.map((variant) => variant.color)
-  // const sizes = productVariants.map((variant) => variant.size)
-  // const prices = productVariants.map((variant) => variant.price)
 
   useEffect(() => {
     async function getSeasons() {
@@ -26,7 +32,7 @@ function OrderPage() {
         const res2 = await fetch(
           `http://localhost:3000/api/seasons/${seasons[0].id}/products`,
         )
-        const products = await res2.json()
+        const products: Product[] = await res2.json()
         setProducts(products)
       }
     }
@@ -40,15 +46,22 @@ function OrderPage() {
       <main className="bg-background grid grid-cols-1 xl:grid-cols-3 flex-1">
         <ul className="p-8 col-span-2 grid gap-6 flex-wrap">
           {products.map((product) => {
+            const colors = [
+              ...new Set(product.variants.map((variant) => variant.color)),
+            ]
+            const sizes = [
+              ...new Set(product.variants.map((variant) => variant.size)),
+            ]
             return (
               <li key={product.id}>
                 <ProductCard
                   name={product.name}
                   description={product.description}
                   supplierModelId={product.supplierModelId}
-                  colors={['red', 'blue', 'green']}
-                  sizes={['S', 'M', 'L', 'XL', '2XL']}
-                  price="$29.99"
+                  colors={colors}
+                  sizes={sizes}
+                  price={'$29.99'}
+                  imageUrl={product.variants[0].imageUrl}
                 />
               </li>
             )
