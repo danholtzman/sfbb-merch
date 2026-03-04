@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import Cart from '@/components/cart'
 import HeroBar from '@/components/hero-bar'
 import NavBar from '@/components/nav-bar'
 import ProductCard from '@/components/product-card'
@@ -37,11 +38,7 @@ function OrderPage() {
             )
           })}
         </ul>
-        <section className="p-8 bg-sidebar-accent">
-          <h1 className="uppercase font-mono text-sm pb-4 border-b border-b-accent">
-            Your Order
-          </h1>
-        </section>
+        <Cart />
       </main>
     </div>
   )

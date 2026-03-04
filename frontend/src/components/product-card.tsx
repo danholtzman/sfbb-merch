@@ -90,6 +90,7 @@ function ProductCard({ product }: ProductCardProps) {
                 onSubtract={() => setQuantity(Math.max(0, quantity - 1))}
               />
             </div>
+            {/* TODO: Disabled until quantity > 0, default quantity to 1? */}
             <Button className="max-w-full/50 block">+ Add to Order</Button>
           </form>
         </div>
