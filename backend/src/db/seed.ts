@@ -100,7 +100,7 @@ async function main() {
         color: color.hexCode,
         imageUrl: color.imageUrl,
         size,
-        price: '28.00',
+        price: size === 'XL' || size === '2XL' ? '30.00' : '28.00',
       })),
     ),
     ...jacketColors.flatMap((color) =>
@@ -109,7 +109,7 @@ async function main() {
         color: color.hexCode,
         imageUrl: color.imageUrl,
         size,
-        price: '68.00',
+        price: size === 'XL' || size === '2XL' ? '70.00' : '68.00',
       })),
     ),
   ])
