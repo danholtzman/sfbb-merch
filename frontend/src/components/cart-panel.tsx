@@ -3,9 +3,10 @@ import type { CartItem } from '@/types'
 
 type CartPanelProps = {
   items: CartItem[]
+  onItemRemove: (productInstanceId: string) => void
 }
 
-function CartPanel({ items }: CartPanelProps) {
+function CartPanel({ items, onItemRemove }: CartPanelProps) {
   const numItems = items.reduce((acc, curr) => (acc += curr.quantity), 0)
   return (
     <section className="bg-sidebar-accent">
@@ -20,7 +21,11 @@ function CartPanel({ items }: CartPanelProps) {
 
       <div className="flex flex-col px-8">
         {items.map((item) => (
-          <CartItemComponent key={item.id} item={item} />
+          <CartItemComponent
+            key={item.id}
+            item={item}
+            onRemove={onItemRemove}
+          />
         ))}
       </div>
     </section>

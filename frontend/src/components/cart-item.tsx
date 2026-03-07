@@ -3,6 +3,7 @@ import { Button } from './ui/button'
 
 type CartItemProps = {
   item: CartItemType
+  onRemove: (productInstanceId: string) => void
 }
 
 const numberFormatter = new Intl.NumberFormat('en-US', {
@@ -10,7 +11,7 @@ const numberFormatter = new Intl.NumberFormat('en-US', {
   currency: 'USD',
 })
 
-function CartItem({ item }: CartItemProps) {
+function CartItem({ item, onRemove }: CartItemProps) {
   const perItemPrice = numberFormatter.format(item.price)
   const totalPrice = numberFormatter.format(item.price * item.quantity)
 
@@ -58,6 +59,7 @@ function CartItem({ item }: CartItemProps) {
         type="button"
         variant="destructive"
         className="font-mono self-center ml-4 w-8 h-8"
+        onClick={() => onRemove(item.id)}
       >
         x
       </Button>

@@ -18,7 +18,7 @@ function createCartItem(
 function OrderPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [cart, setCart] = useState<CartItem[]>([])
-  const onAddToCart = useCallback(
+  const handleAddToCart = useCallback(
     (productInstance: ProductInstance, quantity: number) => {
       const newCart: CartItem[] = [...cart]
       const matchingCartItemIndex = cart.findIndex(
@@ -33,6 +33,13 @@ function OrderPage() {
       }
 
       setCart(newCart)
+    },
+    [cart],
+  )
+
+  const handleItemRemove = useCallback(
+    (productInstanceId: string) => {
+      setCart(cart.filter((i) => i.id !== productInstanceId))
     },
     [cart],
   )
@@ -62,12 +69,12 @@ function OrderPage() {
           {products.map((product) => {
             return (
               <li key={product.id}>
-                <ProductCard product={product} onAddToCart={onAddToCart} />
+                <ProductCard product={product} onAddToCart={handleAddToCart} />
               </li>
             )
           })}
         </ul>
-        <CartPanel items={cart} />
+        <CartPanel items={cart} onItemRemove={handleItemRemove} />
       </main>
     </div>
   )
