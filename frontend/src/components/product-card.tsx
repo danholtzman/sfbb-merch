@@ -1,13 +1,5 @@
 import { useMemo, useState } from 'react'
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import type { Product, ProductVariant } from '@/types/product'
 import ColorSelector from './color-selector'
 import QuantitySelector from './quantity-selector'
@@ -68,6 +60,7 @@ function ProductCard({ product }: ProductCardProps) {
           <form className="font-mono">
             <div className="mb-4">
               <div className="font-mono uppercase text-xs mb-2">Color</div>
+              {/* TODO: Color name on hover */}
               <ColorSelector
                 colors={colors}
                 selectedColor={selectedColor}

@@ -1,6 +1,5 @@
 import { ThemeProvider } from '@/components/theme-provider'
-import { ThemeToggle } from './components/theme-toggle'
-import OrderPage from './pages/order-Page'
+import OrderPage from '@/pages/order-page'
 
 function App() {
   return (

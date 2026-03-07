@@ -30,6 +30,7 @@ function CartItem({
         <div className="flex flex-row justify-between font-mono text-sm text-muted-foreground">
           <div>
             <span className="w-2 h-2 bg-blue-900 rounded-full inline-block mr-2 ring-1"></span>
+            {/* TODO: Color name in addition to color hex */}
             <span className="mr-2">Navy</span>
             <span className="mr-2">·</span>
             <span className="mr-2">{size}</span>
