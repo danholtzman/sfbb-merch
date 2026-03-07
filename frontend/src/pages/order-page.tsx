@@ -3,7 +3,7 @@ import Cart from '@/components/cart'
 import HeroBar from '@/components/hero-bar'
 import NavBar from '@/components/nav-bar'
 import ProductCard from '@/components/product-card'
-import type { Product } from '@/types/product'
+import type { Product } from '@/types'
 
 function OrderPage() {
   const [products, setProducts] = useState<Product[]>([])

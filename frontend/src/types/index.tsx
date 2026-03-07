@@ -1,5 +1,6 @@
 export type ProductVariant = {
-  color: string
+  colorName: string
+  colorHex: string
   size: string
   imageUrl: string
   price: string
@@ -11,4 +12,9 @@ export type Product = {
   name: string
   supplierModelId: string
   variants: ProductVariant[]
+}
+
+export type Color = {
+  hexCode: string
+  name: string
 }

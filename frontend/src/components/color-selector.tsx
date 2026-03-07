@@ -1,7 +1,9 @@
+import type { Color } from '@/types'
+
 type ColorSelectorProps = {
-  colors: string[]
-  selectedColor: string
-  onSelect: (color: string) => void
+  colors: Color[]
+  selectedColor: Color
+  onSelect: (color: Color) => void
 }
 
 function ColorSelector({
@@ -14,10 +16,10 @@ function ColorSelector({
       {colors.map((color) => {
         return (
           <button
-            key={color}
+            key={color.hexCode}
             type="button"
-            className={`${color === selectedColor ? 'ring-2' : ''} w-8 h-8 rounded-full inline-block cursor-pointer`}
-            style={{ backgroundColor: color }}
+            className={`${color.hexCode === selectedColor.hexCode ? 'ring-2' : ''} w-8 h-8 rounded-full inline-block cursor-pointer`}
+            style={{ backgroundColor: color.hexCode }}
             onClick={() => onSelect(color)}
           />
         )

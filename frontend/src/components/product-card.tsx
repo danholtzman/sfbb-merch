@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
-import type { Product, ProductVariant } from '@/types/product'
+import type { Color, Product, ProductVariant } from '@/types'
 import ColorSelector from './color-selector'
 import QuantitySelector from './quantity-selector'
 import SizeSelector from './size-selector'
@@ -12,20 +12,29 @@ type ProductCardProps = {
 
 function getProductVariant(
   product: Product,
-  color: string,
+  color: Color,
   size: string,
 ): ProductVariant | undefined {
   return product.variants.find((variant) => {
-    return variant.color === color && variant.size === size
+    return variant.colorHex === color.hexCode && variant.size === size
   })
 }
 
 function ProductCard({ product }: ProductCardProps) {
-  const colors = useMemo(
-    () => [...new Set(product.variants.map((variant) => variant.color))],
+  const colors = useMemo<Color[]>(
+    () =>
+      product.variants.reduce<Color[]>((acc, curr) => {
+        if (acc.some((c) => c.hexCode === curr.colorHex)) {
+          return acc
+        }
+
+        acc.push({ name: curr.colorName, hexCode: curr.colorHex })
+        return acc
+      }, []),
+
     [product],
   )
-  const sizes = useMemo(
+  const sizes = useMemo<string[]>(
     () => [...new Set(product.variants.map((variant) => variant.size))],
     [product],
   )
@@ -64,7 +73,7 @@ function ProductCard({ product }: ProductCardProps) {
               <ColorSelector
                 colors={colors}
                 selectedColor={selectedColor}
-                onSelect={(color: string) => setSelectedColor(color)}
+                onSelect={(color: Color) => setSelectedColor(color)}
               />
             </div>
             <div className="mb-4">
