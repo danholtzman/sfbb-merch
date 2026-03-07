@@ -13,6 +13,7 @@ function ColorSelector({
 }: ColorSelectorProps) {
   return (
     <div className="flex gap-4">
+      {/* TODO: Color name on hover */}
       {colors.map((color) => {
         return (
           <button

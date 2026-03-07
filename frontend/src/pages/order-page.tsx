@@ -1,12 +1,29 @@
-import { useEffect, useState } from 'react'
-import Cart from '@/components/cart'
+import { useCallback, useEffect, useState } from 'react'
+import CartPanel from '@/components/cart-panel'
 import HeroBar from '@/components/hero-bar'
 import NavBar from '@/components/nav-bar'
 import ProductCard from '@/components/product-card'
-import type { Product } from '@/types'
+import type { CartItem, Product, ProductInstance } from '@/types'
+
+function createCartItem(
+  productInstance: ProductInstance,
+  quantity: number,
+): CartItem {
+  return {
+    ...productInstance,
+    quantity,
+  }
+}
 
 function OrderPage() {
   const [products, setProducts] = useState<Product[]>([])
+  const [cart, setCart] = useState<CartItem[]>([])
+  const onAddToCart = useCallback(
+    (productInstance: ProductInstance, quantity: number) => {
+      setCart([...cart, createCartItem(productInstance, quantity)])
+    },
+    [cart],
+  )
 
   useEffect(() => {
     async function getSeasons() {
@@ -33,12 +50,12 @@ function OrderPage() {
           {products.map((product) => {
             return (
               <li key={product.id}>
-                <ProductCard product={product} />
+                <ProductCard product={product} onAddToCart={onAddToCart} />
               </li>
             )
           })}
         </ul>
-        <Cart />
+        <CartPanel items={cart} />
       </main>
     </div>
   )

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
-import type { Color, Product, ProductVariant } from '@/types'
+import type { Color, Product, ProductInstance, ProductVariant } from '@/types'
 import ColorSelector from './color-selector'
 import QuantitySelector from './quantity-selector'
 import SizeSelector from './size-selector'
@@ -8,6 +8,18 @@ import { Button } from './ui/button'
 
 type ProductCardProps = {
   product: Product
+  onAddToCart: (productInstance: ProductInstance, quantity: number) => void
+}
+
+function createProductInstance(
+  product: Product,
+  variant: ProductVariant,
+): ProductInstance {
+  const { variants, ...productWithoutVariants } = product
+  return {
+    ...productWithoutVariants,
+    ...variant,
+  }
 }
 
 function getProductVariant(
@@ -20,7 +32,7 @@ function getProductVariant(
   })
 }
 
-function ProductCard({ product }: ProductCardProps) {
+function ProductCard({ product, onAddToCart }: ProductCardProps) {
   const colors = useMemo<Color[]>(
     () =>
       product.variants.reduce<Color[]>((acc, curr) => {
@@ -41,7 +53,7 @@ function ProductCard({ product }: ProductCardProps) {
 
   const [selectedColor, setSelectedColor] = useState(colors[0])
   const [selectedSize, setSelectedSize] = useState(sizes[0])
-  const [quantity, setQuantity] = useState(0)
+  const [quantity, setQuantity] = useState(1)
 
   const selectedProductVariant = useMemo(() => {
     return getProductVariant(product, selectedColor, selectedSize)
@@ -69,7 +81,7 @@ function ProductCard({ product }: ProductCardProps) {
           <form className="font-mono">
             <div className="mb-4">
               <div className="font-mono uppercase text-xs mb-2">Color</div>
-              {/* TODO: Color name on hover */}
+
               <ColorSelector
                 colors={colors}
                 selectedColor={selectedColor}
@@ -92,8 +104,20 @@ function ProductCard({ product }: ProductCardProps) {
                 onSubtract={() => setQuantity(Math.max(0, quantity - 1))}
               />
             </div>
-            {/* TODO: Disabled until quantity > 0, default quantity to 1? */}
-            <Button className="max-w-full/50 block">+ Add to Order</Button>
+            {/* TODO: Personalization */}
+            <Button
+              className="max-w-full/50 block"
+              type="button"
+              disabled={quantity <= 0}
+              onClick={() =>
+                onAddToCart(
+                  createProductInstance(product, selectedProductVariant),
+                  quantity,
+                )
+              }
+            >
+              + Add to Cart
+            </Button>
           </form>
         </div>
         <div></div>

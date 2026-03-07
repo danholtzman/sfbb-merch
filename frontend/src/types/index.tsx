@@ -1,9 +1,10 @@
 export type ProductVariant = {
+  id: string
   colorName: string
   colorHex: string
   size: string
   imageUrl: string
-  price: string
+  price: number
 }
 
 export type Product = {
@@ -14,7 +15,13 @@ export type Product = {
   variants: ProductVariant[]
 }
 
+export type ProductInstance = Omit<Product, 'variants' | 'id'> & ProductVariant
+
 export type Color = {
   hexCode: string
   name: string
+}
+
+export type CartItem = ProductInstance & {
+  quantity: number
 }
