@@ -20,7 +20,19 @@ function OrderPage() {
   const [cart, setCart] = useState<CartItem[]>([])
   const onAddToCart = useCallback(
     (productInstance: ProductInstance, quantity: number) => {
-      setCart([...cart, createCartItem(productInstance, quantity)])
+      const newCart: CartItem[] = [...cart]
+      const matchingCartItemIndex = cart.findIndex(
+        (i) => i.id === productInstance.id,
+      )
+
+      if (matchingCartItemIndex >= 0) {
+        const existingCartItem = newCart[matchingCartItemIndex]
+        existingCartItem.quantity += quantity
+      } else {
+        newCart.push(createCartItem(productInstance, quantity))
+      }
+
+      setCart(newCart)
     },
     [cart],
   )
