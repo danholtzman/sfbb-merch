@@ -42,7 +42,8 @@ export const productVariants = appSchema.table.withRLS('product_variants', {
   productId: uuid()
     .references(() => products.id)
     .notNull(),
-  color: text().notNull(),
+  colorHex: text().notNull(),
+  colorName: text().notNull(),
   size: text().notNull(),
   imageUrl: text(),
   price: numeric().notNull(),

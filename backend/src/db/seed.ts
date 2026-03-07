@@ -75,19 +75,22 @@ async function main() {
   const jacketSizes = ['S', 'M', 'L', 'XL']
   const teeColors = [
     {
-      hexCode: '#584670',
+      colorHex: '#584670',
+      colorName: 'Purple',
       imageUrl:
         'http://127.0.0.1:54321/storage/v1/object/public/images/merch-2025/mens-purple.jpg',
     },
     {
-      hexCode: '#2F2F2F',
+      colorHex: '#2F2F2F',
+      colorName: 'Dark Gray',
       imageUrl:
         'http://127.0.0.1:54321/storage/v1/object/public/images/merch-2025/mens-dark-gray.jpg',
     },
   ]
   const jacketColors = [
     {
-      hexCode: '#1E2020',
+      colorHex: '#1E2020',
+      colorName: 'Black',
       imageUrl:
         'http://127.0.0.1:54321/storage/v1/object/public/images/merch-2025/mens-jacket-crosshatch.png',
     },
@@ -97,7 +100,8 @@ async function main() {
     ...teeColors.flatMap((color) =>
       teeSizes.map((size) => ({
         productId: tee.id,
-        color: color.hexCode,
+        colorHex: color.colorHex,
+        colorName: color.colorName,
         imageUrl: color.imageUrl,
         size,
         price: size === 'XL' || size === '2XL' ? '30.00' : '28.00',
@@ -106,7 +110,8 @@ async function main() {
     ...jacketColors.flatMap((color) =>
       jacketSizes.map((size) => ({
         productId: jacket.id,
-        color: color.hexCode,
+        colorHex: color.colorHex,
+        colorName: color.colorName,
         imageUrl: color.imageUrl,
         size,
         price: size === 'XL' || size === '2XL' ? '70.00' : '68.00',
