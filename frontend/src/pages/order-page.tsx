@@ -18,6 +18,7 @@ function createCartItem(
 function OrderPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [cart, setCart] = useState<CartItem[]>([])
+
   const handleAddToCart = useCallback(
     (productInstance: ProductInstance, quantity: number) => {
       const newCart: CartItem[] = [...cart]
@@ -86,6 +87,14 @@ function OrderPage() {
     [cart, handleItemRemove],
   )
 
+  const numberFormatter = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+  })
+  const totalPrice = numberFormatter.format(
+    cart.reduce<number>((acc, curr) => (acc += curr.price * curr.quantity), 0),
+  )
+
   useEffect(() => {
     async function getSeasons() {
       const res = await fetch('http://localhost:3000/api/seasons')
@@ -121,6 +130,7 @@ function OrderPage() {
           onItemRemove={handleItemRemove}
           onItemQuantityIncrease={handleItemQuantityIncrease}
           onItemQuantityDecrease={handleItemQuantityDecrease}
+          totalPrice={totalPrice}
         />
       </main>
     </div>

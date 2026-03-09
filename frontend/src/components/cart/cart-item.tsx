@@ -23,7 +23,7 @@ function CartItem({
   const totalPrice = numberFormatter.format(item.price * item.quantity)
 
   return (
-    <div className="flex flex-row border-b border-b-accent py-4">
+    <div className="flex flex-row border-b border-b-accent py-6">
       <img src={item.imageUrl} alt="Shirt" className="mr-4 w-24 h-auto" />
       <div className="flex-1">
         <div className="flex flex-row justify-between">
