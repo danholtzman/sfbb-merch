@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
-import CartPanel from '@/components/cart-panel'
-import HeroBar from '@/components/hero-bar'
-import NavBar from '@/components/nav-bar'
-import ProductCard from '@/components/product-card'
+import CartPanel from '@/components/cart/cart-panel'
+import HeroBar from '@/components/layout/hero-bar'
+import NavBar from '@/components/layout/nav-bar'
+import ProductCard from '@/components/order-form/product-card'
 import type { CartItem, Product, ProductInstance } from '@/types'
 
 function createCartItem(
@@ -44,6 +44,48 @@ function OrderPage() {
     [cart],
   )
 
+  const handleItemQuantityIncrease = useCallback(
+    (productInstanceId: string) => {
+      setCart(
+        cart.map((item) => {
+          if (item.id === productInstanceId) {
+            item.quantity = Math.max(0, item.quantity + 1)
+            return item
+          }
+
+          return item
+        }),
+      )
+    },
+    [cart],
+  )
+
+  const handleItemQuantityDecrease = useCallback(
+    (productInstanceId: string) => {
+      let shouldRemoveItem = false
+      setCart(
+        cart.map((item) => {
+          if (item.id === productInstanceId) {
+            item.quantity = Math.max(0, item.quantity - 1)
+
+            if (item.quantity <= 0) {
+              shouldRemoveItem = true
+            }
+
+            return item
+          }
+
+          return item
+        }),
+      )
+
+      if (shouldRemoveItem) {
+        handleItemRemove(productInstanceId)
+      }
+    },
+    [cart, handleItemRemove],
+  )
+
   useEffect(() => {
     async function getSeasons() {
       const res = await fetch('http://localhost:3000/api/seasons')
@@ -74,7 +116,12 @@ function OrderPage() {
             )
           })}
         </ul>
-        <CartPanel items={cart} onItemRemove={handleItemRemove} />
+        <CartPanel
+          items={cart}
+          onItemRemove={handleItemRemove}
+          onItemQuantityIncrease={handleItemQuantityIncrease}
+          onItemQuantityDecrease={handleItemQuantityDecrease}
+        />
       </main>
     </div>
   )

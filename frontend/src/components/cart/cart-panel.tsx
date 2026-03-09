@@ -1,12 +1,19 @@
-import CartItemComponent from '@/components/cart-item'
+import CartItemComponent from '@/components/cart/cart-item'
 import type { CartItem } from '@/types'
 
 type CartPanelProps = {
   items: CartItem[]
   onItemRemove: (productInstanceId: string) => void
+  onItemQuantityIncrease: (productInstanceId: string) => void
+  onItemQuantityDecrease: (productInstanceId: string) => void
 }
 
-function CartPanel({ items, onItemRemove }: CartPanelProps) {
+function CartPanel({
+  items,
+  onItemRemove,
+  onItemQuantityIncrease,
+  onItemQuantityDecrease,
+}: CartPanelProps) {
   const numItems = items.reduce((acc, curr) => (acc += curr.quantity), 0)
   return (
     <section className="bg-sidebar-accent">
@@ -25,6 +32,8 @@ function CartPanel({ items, onItemRemove }: CartPanelProps) {
             key={item.id}
             item={item}
             onRemove={onItemRemove}
+            onQuantityIncrease={() => onItemQuantityIncrease(item.id)}
+            onQuantityDecrease={() => onItemQuantityDecrease(item.id)}
           />
         ))}
       </div>

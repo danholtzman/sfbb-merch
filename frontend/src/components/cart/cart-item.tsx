@@ -1,9 +1,11 @@
 import type { CartItem as CartItemType } from '@/types'
-import { Button } from './ui/button'
+import { Button } from '../ui/button'
 
 type CartItemProps = {
   item: CartItemType
   onRemove: (productInstanceId: string) => void
+  onQuantityIncrease: (productInstanceId: string) => void
+  onQuantityDecrease: (productInstanceId: string) => void
 }
 
 const numberFormatter = new Intl.NumberFormat('en-US', {
@@ -11,7 +13,12 @@ const numberFormatter = new Intl.NumberFormat('en-US', {
   currency: 'USD',
 })
 
-function CartItem({ item, onRemove }: CartItemProps) {
+function CartItem({
+  item,
+  onRemove,
+  onQuantityIncrease,
+  onQuantityDecrease,
+}: CartItemProps) {
   const perItemPrice = numberFormatter.format(item.price)
   const totalPrice = numberFormatter.format(item.price * item.quantity)
 
@@ -46,11 +53,19 @@ function CartItem({ item, onRemove }: CartItemProps) {
 
         <div className="font-mono text-sm mt-2">
           <span className="mr-2">Quantity:</span>
-          <Button variant="outline" className="mr-2 h-6">
+          <Button
+            variant="outline"
+            className="mr-2 h-6"
+            onClick={() => onQuantityDecrease(item.id)}
+          >
             -
           </Button>
           <span className="mr-2">{item.quantity}</span>
-          <Button variant="outline" className="h-6">
+          <Button
+            variant="outline"
+            className="h-6"
+            onClick={() => onQuantityIncrease(item.id)}
+          >
             +
           </Button>
         </div>
