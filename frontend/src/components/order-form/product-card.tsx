@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import type { Color, Product, ProductInstance, ProductVariant } from '@/types'
+import { Button } from '../ui/button'
 import ColorSelector from './color-selector'
 import QuantitySelector from './quantity-selector'
 import SizeSelector from './size-selector'
-import { Button } from './ui/button'
 
 type ProductCardProps = {
   product: Product
