@@ -1,0 +1,51 @@
+name: sfbb-merch
+x-private-runtime: &private-runtime
+  platform: linux/arm64
+  user: "10001:10001"
+  read_only: true
+  init: true
+  env_file:
+    - path: ${SFBB_ROOT:-/srv/sfbb-merch}/.env
+      format: raw
+  environment:
+    NODE_ENV: production
+    PUBLIC_ORIGIN: https://sfbb.holtzman.io
+    DATABASE_URL: file:/data/sfbb.sqlite
+    DATA_DIR: /data
+  volumes:
+    - type: bind
+      source: ${SFBB_ROOT:-/srv/sfbb-merch}/data
+      target: /data
+      bind:
+        create_host_path: false
+  tmpfs:
+    - /tmp:rw,noexec,nosuid,size=64m,mode=1777
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+services:
+  app:
+    <<: *private-runtime
+    image: sfbb-merch:${SFBB_RELEASE_TAG:?Set SFBB_RELEASE_TAG to a verified commit tag}
+    pull_policy: never
+    restart: unless-stopped
+    stop_grace_period: 30s
+    ports:
+      - "127.0.0.1:3000:3000"
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      start_period: 15s
+      retries: 6
+  migrate:
+    <<: *private-runtime
+    image: sfbb-merch-migrate:${SFBB_RELEASE_TAG:?Set SFBB_RELEASE_TAG to a verified commit tag}
+    pull_policy: never
+    profiles: [maintenance]
+    restart: "no"
+    command: [node, scripts/migrate.mjs]

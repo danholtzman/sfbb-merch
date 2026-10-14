@@ -1,0 +1,10 @@
+# Reference snippet only. Merge with the EXISTING site after inspecting its
+# tunnel ingress, listen address and TLS policy. Never replace the whole file.
+sfbb.holtzman.io {
+    reverse_proxy 127.0.0.1:3000 {
+        # Strip client-provided trust headers. Default app config leaves
+        # TRUSTED_PROXY_SECRET unset and uses its conservative address bucket.
+        header_up -X-SFBB-Proxy-Secret
+        header_up -X-SFBB-Client-IP
+    }
+}

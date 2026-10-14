@@ -50,7 +50,7 @@ SQLite persists five failed attempts per normalized shared username and trusted 
 
 Next route handlers do not expose the TCP peer. Arbitrary `X-Forwarded-For`, `CF-Connecting-IP`, posted addresses, or unauthenticated custom headers are ignored. With no configured proxy secret, all direct requests use the conservative `untrusted` address bucket.
 
-For the final Caddy/tunnel integration, optionally configure a separate random `TRUSTED_PROXY_SECRET` of at least 64 characters. Caddy must overwrite incoming `X-SFBB-Proxy-Secret` with that value and overwrite `X-SFBB-Client-IP` with a validated numeric client IP. The application accepts that address only when the secret matches. Caddy must establish that forwarded Cloudflare addresses came through the trusted tunnel ingress; it must not blindly forward a client-supplied Cloudflare/IP header. Stage 11 will inspect the existing routing before applying this configuration. No Caddy or Cloudflare setting has been changed in this stage.
+For the final Caddy/tunnel integration, optionally configure a separate random `TRUSTED_PROXY_SECRET` of at least 64 characters. Caddy must overwrite incoming `X-SFBB-Proxy-Secret` with that value and overwrite `X-SFBB-Client-IP` with a validated numeric client IP. The application accepts that address only when the secret matches. Caddy must establish that forwarded Cloudflare addresses came through the trusted tunnel ingress; it must not blindly forward a client-supplied Cloudflare/IP header. The Stage 11 [deployment runbook](DEPLOYMENT.md) requires inspection of existing routing before applying this configuration; release scripts never edit Caddy or the tunnel. No Caddy or Cloudflare setting has been changed in this stage.
 
 ## Member state and responsive behavior
 

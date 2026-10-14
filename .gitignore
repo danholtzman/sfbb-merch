@@ -14,3 +14,5 @@ web/src/generated/
 *.tgz
 
 web/*.tsbuildinfo
+
+releases/

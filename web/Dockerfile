@@ -1,5 +1,7 @@
 # Official multi-platform digest; builds are explicitly Linux/ARM64.
 FROM node:24-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20 AS base
+ARG RELEASE_COMMIT=unversioned
+LABEL org.opencontainers.image.revision=$RELEASE_COMMIT
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN groupadd --gid 10001 sfbb && useradd --uid 10001 --gid sfbb --no-create-home sfbb && mkdir /data && chown sfbb:sfbb /data
@@ -14,7 +16,9 @@ COPY . .
 RUN npm run build
 
 FROM dependencies AS production-dependencies
-RUN npm prune --omit=dev --omit=peer
+# Prisma's optional peer can remain in npm's pruned graph. The generated
+# client uses @prisma/client/runtime; only the maintenance image needs the CLI.
+RUN npm prune --omit=dev --omit=peer && rm -rf node_modules/prisma node_modules/.bin/prisma
 
 # Invoke this target only for private migration jobs, never as the web server.
 FROM dependencies AS migration
