@@ -31,6 +31,7 @@ fixture.transaction(() => {
   fixture.prepare('INSERT INTO StyleSize (id,styleId,label,normalizedLabel,position) VALUES (?,?,?,?,?)').run(randomUUID(), styleId, "L", "l", 0);
   fixture.prepare('INSERT INTO StyleArtworkSet (id,styleId,artworkSetId,position) VALUES (?,?,?,?)').run(randomUUID(), styleId, setId, 0);
 })();
+fixture.prepare('INSERT INTO ArtworkSet (id,seasonId,name,normalizedName,position,updatedAt) VALUES (?,?,?,?,?,?)').run(randomUUID(), seasonId, "Encore", "encore", 1, Date.now());
 fixture.close();
 const next = spawn(process.execPath, ["node_modules/next/dist/bin/next", "dev", "--hostname", "127.0.0.1", "--port", "3100"], { env, stdio: "inherit" });
 for (const signal of ["SIGINT", "SIGTERM"]) process.once(signal, () => next.kill("SIGTERM"));

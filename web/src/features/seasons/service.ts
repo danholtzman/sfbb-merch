@@ -19,7 +19,7 @@ async function noOverlap(tx: DbTransaction, season: SeasonView) {
   const conflict = await tx.season.findFirst({ where: { id: { not: season.id }, lifecycle: "PUBLISHED", opensOn: { lte: season.closesOn }, closesOn: { gte: season.opensOn } } });
   if (conflict) throw new AppError("SEASON_OVERLAP", 422, `These dates overlap the published season “${conflict.name}”. Opening and closing dates are inclusive.`, { opensOn: "Published ordering windows cannot share a day." });
 }
-async function readiness(tx: DbTransaction, id: string) {
+export async function validateSeasonReadiness(tx: DbTransaction, id: string) {
   const styles = await tx.merchandiseStyle.findMany({ where: { seasonId: id }, include: { colors: true, sizes: true, artworkSets: { include: { artworkSet: { include: { frontAsset: true, backAsset: true } } } } } });
   const fields: Record<string, string> = {};
   if (!styles.length) fields.styles = "Add at least one shirt style.";
@@ -103,7 +103,7 @@ export function createSeasonService(client: PrismaClient = db) {
       admin(ctx); return withTransaction(async tx => {
         const season = await current(tx, id, expectedVersion);
         if (season.lifecycle !== "DRAFT") throw new AppError("INVALID_LIFECYCLE", 422, "Only a draft season can be published.");
-        await noOverlap(tx, season); await readiness(tx, id);
+        await noOverlap(tx, season); await validateSeasonReadiness(tx, id);
         const result = await tx.season.updateMany({ where: { id, version: expectedVersion }, data: { lifecycle: "PUBLISHED", version: { increment: 1 } } }); assertVersionWrite(result.count);
         return tx.season.findUniqueOrThrow({ where: { id } });
       }, client);
