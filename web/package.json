@@ -14,7 +14,13 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "db:generate": "PRISMA_HIDE_UPDATE_MESSAGE=1 DATABASE_URL=file:/tmp/sfbb-generation-unused.sqlite prisma generate",
+    "db:migrate": "node scripts/migrate.mjs",
+    "prebuild": "npm run db:generate",
+    "pretypecheck": "npm run db:generate",
+    "pretest": "npm run db:generate",
+    "predev": "npm run db:generate"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "7.10.0",

@@ -1,6 +1,6 @@
 # SFBB production application
 
-Stage 1 provides the framework, runtime configuration, process health endpoint, test tooling, and Linux ARM64 container. The root HTML mockups remain the design reference. Ordering, authentication, and database schema arrive in later stages; this foundation is not a production release.
+Stages 1–2 provide the framework, runtime configuration, process health endpoint, test tooling, checked database schema, and Linux ARM64 containers. The root HTML mockups remain the design reference. Ordering and authentication arrive in later stages; this foundation is not a production release.
 
 Use Node 24, npm 11.19.0, and the committed npm lockfile (the container supplies both runtime tools):
 
@@ -24,3 +24,5 @@ docker run --rm -p 127.0.0.1:3000:3000 sfbb-merch:foundation
 ```
 
 The runtime uses UID/GID 10001. The deployment stage will mount private persistent data at `/data` and connect the loopback listener to the existing Caddy/Cloudflare tunnel. No service on the Pi has been changed.
+
+Database setup, migration precautions, bootstrap handoff, and invariants are documented in [DATABASE.md](../docs/DATABASE.md).

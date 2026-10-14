@@ -1,0 +1,276 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+  importFileExtension = "ts"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum Progress {
+  OPEN
+  DELIVERED_UNPAID
+  COMPLETE
+}
+
+enum Lifecycle {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum Role {
+  member
+  admin
+}
+
+enum Side {
+  front
+  back
+}
+
+enum Cut {
+  classic
+  fitted
+  long
+}
+
+model Season {
+  id           String             @id @default(uuid())
+  name         String
+  opensOn      String
+  closesOn     String
+  announcement String             @default("")
+  lifecycle    Lifecycle          @default(DRAFT)
+  version      Int                @default(1)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  styles       MerchandiseStyle[]
+  artworkSets  ArtworkSet[]
+  orders       Order[]
+}
+
+model MerchandiseStyle {
+  id             String            @id @default(uuid())
+  seasonId       String
+  season         Season            @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  name           String
+  description    String
+  unitPriceCents Int
+  cut            Cut
+  position       Int               @default(0)
+  version        Int               @default(1)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  colors         StyleColor[]
+  sizes          StyleSize[]
+  artworkSets    StyleArtworkSet[]
+  blankPhotos    BlankPhoto[]
+  placements     Placement[]
+  orderLines     OrderLine[]
+
+  @@index([seasonId, position])
+}
+
+model StyleColor {
+  id             String           @id @default(uuid())
+  styleId        String
+  style          MerchandiseStyle @relation(fields: [styleId], references: [id], onDelete: Cascade)
+  name           String
+  normalizedName String
+  hex            String
+  position       Int
+  version        Int              @default(1)
+  photos         BlankPhoto[]
+  placements     Placement[]
+  orderLines     OrderLine[]
+
+  @@unique([styleId, normalizedName])
+  @@index([styleId, position])
+}
+
+model StyleSize {
+  id              String           @id @default(uuid())
+  styleId         String
+  style           MerchandiseStyle @relation(fields: [styleId], references: [id], onDelete: Cascade)
+  label           String
+  normalizedLabel String
+  position        Int
+  version         Int              @default(1)
+  orderLines      OrderLine[]
+
+  @@unique([styleId, normalizedLabel])
+  @@index([styleId, position])
+}
+
+model ArtworkSet {
+  id             String            @id @default(uuid())
+  seasonId       String
+  season         Season            @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  name           String
+  normalizedName String
+  frontAssetId   String?
+  frontAsset     Asset?            @relation("FrontArtwork", fields: [frontAssetId], references: [id], onDelete: Restrict)
+  backAssetId    String?
+  backAsset      Asset?            @relation("BackArtwork", fields: [backAssetId], references: [id], onDelete: Restrict)
+  position       Int               @default(0)
+  version        Int               @default(1)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  styles         StyleArtworkSet[]
+  placements     Placement[]
+  orderLines     OrderLine[]
+
+  @@unique([seasonId, normalizedName])
+}
+
+model StyleArtworkSet {
+  id           String           @id @default(uuid())
+  styleId      String
+  artworkSetId String
+  position     Int
+  style        MerchandiseStyle @relation(fields: [styleId], references: [id], onDelete: Cascade)
+  artworkSet   ArtworkSet       @relation(fields: [artworkSetId], references: [id], onDelete: Cascade)
+
+  @@unique([styleId, artworkSetId])
+}
+
+model Asset {
+  id         String       @id @default(uuid())
+  mime       String
+  width      Int
+  height     Int
+  byteSize   Int
+  storageKey String       @unique
+  sha256     String
+  createdAt  DateTime     @default(now())
+  frontSets  ArtworkSet[] @relation("FrontArtwork")
+  backSets   ArtworkSet[] @relation("BackArtwork")
+  photos     BlankPhoto[]
+}
+
+model BlankPhoto {
+  id       String           @id @default(uuid())
+  styleId  String
+  colorId  String?
+  side     Side
+  scopeKey String
+  assetId  String
+  version  Int              @default(1)
+  style    MerchandiseStyle @relation(fields: [styleId], references: [id], onDelete: Cascade)
+  color    StyleColor?      @relation(fields: [colorId], references: [id], onDelete: Cascade)
+  asset    Asset            @relation(fields: [assetId], references: [id], onDelete: Restrict)
+
+  @@unique([styleId, side, scopeKey])
+}
+
+model Placement {
+  id           String           @id @default(uuid())
+  styleId      String
+  artworkSetId String
+  colorId      String?
+  side         Side
+  scopeKey     String
+  x            Float
+  y            Float
+  width        Float
+  rotation     Float
+  version      Int              @default(1)
+  style        MerchandiseStyle @relation(fields: [styleId], references: [id], onDelete: Cascade)
+  artworkSet   ArtworkSet       @relation(fields: [artworkSetId], references: [id], onDelete: Cascade)
+  color        StyleColor?      @relation(fields: [colorId], references: [id], onDelete: Cascade)
+
+  @@unique([styleId, artworkSetId, side, scopeKey])
+}
+
+model Order {
+  id                 String              @id @default(uuid())
+  code               String              @unique
+  seasonId           String
+  season             Season              @relation(fields: [seasonId], references: [id], onDelete: Restrict)
+  fullName           String
+  note               String              @default("")
+  progress           Progress            @default(OPEN)
+  cancelled          Boolean             @default(false)
+  version            Int                 @default(1)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  lines              OrderLine[]
+  idempotencyRecords IdempotencyRecord[]
+
+  @@index([seasonId, fullName, code])
+}
+
+model OrderLine {
+  id             String           @id @default(uuid())
+  orderId        String
+  styleId        String
+  artworkSetId   String
+  colorId        String
+  sizeId         String
+  quantity       Int
+  unitPriceCents Int
+  styleName      String
+  artworkSetName String
+  colorName      String
+  colorHex       String
+  sizeLabel      String
+  position       Int
+  order          Order            @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  style          MerchandiseStyle @relation(fields: [styleId], references: [id], onDelete: Restrict)
+  artworkSet     ArtworkSet       @relation(fields: [artworkSetId], references: [id], onDelete: Restrict)
+  color          StyleColor       @relation(fields: [colorId], references: [id], onDelete: Restrict)
+  size           StyleSize        @relation(fields: [sizeId], references: [id], onDelete: Restrict)
+
+  @@index([orderId, position])
+  @@index([styleId])
+  @@index([artworkSetId])
+  @@index([colorId])
+  @@index([sizeId])
+}
+
+model Session {
+  id                 String              @id @default(uuid())
+  tokenHash          String              @unique
+  csrfTokenHash      String
+  role               Role
+  createdAt          DateTime            @default(now())
+  expiresAt          DateTime
+  idempotencyRecords IdempotencyRecord[]
+
+  @@index([expiresAt])
+}
+
+model IdempotencyRecord {
+  id             String   @id @default(uuid())
+  sessionId      String
+  key            String
+  requestHash    String
+  responseJson   String
+  responseStatus Int
+  orderId        String?
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+  session        Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  order          Order?   @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  @@unique([sessionId, key])
+  @@index([expiresAt])
+}
+
+model RateLimitBucket {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  count     Int
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
+
+model InitializationMarker {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  createdAt DateTime @default(now())
+}
