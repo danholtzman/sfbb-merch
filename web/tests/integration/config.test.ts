@@ -11,6 +11,11 @@ const valid: NodeJS.ProcessEnv = {
 };
 
 describe("runtime configuration", () => {
+  it("validates an optional trusted-proxy secret", () => {
+    expect(readConfig(valid).trustedProxySecret).toBeUndefined();
+    expect(() => readConfig({ ...valid, TRUSTED_PROXY_SECRET: "short" })).toThrow("TRUSTED_PROXY_SECRET");
+    expect(readConfig({ ...valid, TRUSTED_PROXY_SECRET: "p".repeat(64) }).trustedProxySecret).toBe("p".repeat(64));
+  });
   it("uses the production origin and twelve-hour session default", () => {
     expect(readConfig(valid)).toMatchObject({
       publicOrigin: "https://sfbb.holtzman.io", sessionTtlSeconds: 43200, dataDir: "/data",

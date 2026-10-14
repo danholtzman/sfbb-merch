@@ -8,6 +8,7 @@ export type AppConfig = {
   adminPasswordHash: string;
   sessionSecret: string;
   sessionTtlSeconds: number;
+  trustedProxySecret?: string;
 };
 
 /** Called by server services at runtime, never while importing or building. */
@@ -48,6 +49,8 @@ export function readConfig(env: NodeJS.ProcessEnv): AppConfig {
   if (!/^\d+$/.test(lifetime) || !Number.isSafeInteger(sessionTtlSeconds) || sessionTtlSeconds <= 0) {
     throw new Error("SESSION_TTL_SECONDS must be a positive integer");
   }
+  const trustedProxySecret = env.TRUSTED_PROXY_SECRET || undefined;
+  if (trustedProxySecret && trustedProxySecret.length < 64) throw new Error("TRUSTED_PROXY_SECRET must contain at least 64 characters");
   return { databaseUrl, dataDir, publicOrigin: origin.origin, memberPasswordHash,
-    adminPasswordHash, sessionSecret, sessionTtlSeconds };
+    adminPasswordHash, sessionSecret, sessionTtlSeconds, trustedProxySecret };
 }
