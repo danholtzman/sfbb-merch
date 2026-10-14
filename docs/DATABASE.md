@@ -23,7 +23,7 @@ Interactive writes are queued by resolved database-file identity within the proc
 
 Editable parent records carry a version. Services must filter writes on `id` and the expected version, increment the version atomically, and pass the affected row count to `assertVersionWrite`; an unmatched write raises `STALE_VERSION` (HTTP 409). Services and authenticated routes arrive in later stages; this helper alone does not authorize a mutation.
 
-After migrations, startup must explicitly call `initializeDatabase(client, serverNow)` before offering the first season. That function transactionally creates `First season` as an empty draft, with opening/closing dates equal to the current Los Angeles date and one `Season artwork` set with empty front/back slots. It creates no styles/orders and never publishes. A durable initialization marker prevents repeats; an existing or restored catalog is preserved. The deployment startup integration is still a later stage. Public process health checks remain independent of storage/bootstrap.
+After migrations, startup must explicitly call `initializeDatabase(client, serverNow)` before offering the first season. That function transactionally creates `First season` as an empty draft, with opening/closing dates equal to the current Los Angeles date and one `Season artwork` set with empty front/back slots. It creates no styles/orders and never publishes. A durable initialization marker prevents repeats; an existing or restored catalog is preserved. Stage 4 calls this helper explicitly after administrator authentication when rendering `/admin`; Stage 11 may also call it at startup. Public process health checks remain independent of storage/bootstrap.
 
 ## Invariants and historical data
 
