@@ -1,0 +1,5 @@
+* { box-sizing: border-box; }
+body { margin: 0; color: #151920; background: #fff; font-family: Arial, Helvetica, sans-serif; }
+main { max-width: 70rem; margin: 4rem auto; padding: 0 1.5rem; }
+.brand { color: #1247ed; font-weight: 800; letter-spacing: .08em; }
+button, input, select, textarea { font: inherit; }

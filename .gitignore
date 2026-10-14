@@ -1,0 +1,16 @@
+web/node_modules/
+web/.next/
+web/coverage/
+web/playwright-report/
+web/test-results/
+web/src/generated/
+.superpowers/
+.env
+.env.*
+!.env.example
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.tgz
+
+web/*.tsbuildinfo
