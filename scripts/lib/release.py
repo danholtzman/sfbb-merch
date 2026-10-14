@@ -18,7 +18,7 @@ def validate(archive,tag):
     checksum=pathlib.Path(str(path)+'.sha256').read_text().strip().split()
     if len(checksum)!=2 or checksum[1]!=expected or not re.fullmatch('[a-f0-9]{64}',checksum[0]) or digest(path)!=checksum[0]: raise ValueError('archive checksum mismatch')
     m=json.loads(pathlib.Path(str(path)+'.manifest.json').read_text())
-    if (m['format']!=1 or m['releaseTag']!=tag or not re.fullmatch('[a-f0-9]{40}',m['commit']) or not m['commit'].startswith(tag) or m['platform']!='linux/arm64' or not re.fullmatch(r'v24\.\d+\.\d+',m['node']) or m['archive']!=expected or m['sha256']!=checksum[0] or not isinstance(m['migrations'],list) or not m['migrations'] or any(not re.fullmatch(r'\d{14}_[A-Za-z0-9_]+',x) for x in m['migrations'])): raise ValueError('invalid release manifest')
+    if (m['format']!=1 or m['releaseTag']!=tag or not re.fullmatch('[a-f0-9]{40}',m['commit']) or not m['commit'].startswith(tag) or m['platform']!='linux/arm64' or not re.fullmatch(r'v24\.\d+\.\d+',m['node']) or m['archive']!=expected or m['sha256']!=checksum[0] or not isinstance(m['migrations'],list) or not m['migrations'] or any(not re.fullmatch(r'\d{12,14}_[A-Za-z0-9_]+',x) for x in m['migrations'])): raise ValueError('invalid release manifest')
     for key,prefix in [('app','sfbb-merch'),('migrate','sfbb-merch-migrate')]:
         image=m['images'][key]
         if image['name']!=f'{prefix}:{tag}' or not re.fullmatch('sha256:[a-f0-9]{64}',image['id']): raise ValueError('manifest image pair mismatch')

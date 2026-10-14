@@ -274,7 +274,7 @@ Submit input is `{ seasonId, fullName, note, lines: OrderLineInput[] }`. Member 
 - [x] Run container smoke locally and on the actual Pi at execution time. Success: image/container checks pass locally. Document the domain checks for Task 12, after backup/restore scripts are complete: HTTPS login/shop/admin/assets work through the domain, unauthenticated admin/export fails, and no app port is publicly bound. Do not invoke deploy-release before Task 12 or deploy until the user authorizes the concrete release.
 - [x] Commit packaging/runbook. Credentials, server address, and SSH destination remain environment/operator inputs, not invented values embedded in scripts.
 
-**Stage 11 checkpoint:** Local ARM64 Compose smoke passed with a read-only root, writable data, UID 10001, native SQLite/Sharp, authenticated uploads and restart persistence. Nine isolated deployment/exporter safety checks pass. The actual Pi smoke, Caddy/tunnel inspection and live domain checks remain execution-time Stage 12 handoff items; no deployment has run. Backup availability is a fail-closed dependency on Stage 12.
+**Stage 11 checkpoint:** Local ARM64 Compose smoke passed with a read-only root, writable data, UID 10001, native SQLite/Sharp, authenticated uploads and restart persistence. Ten isolated deployment/exporter safety checks pass. The actual Pi smoke, Caddy/tunnel inspection and live domain checks remain execution-time Stage 12 handoff items; no deployment has run. Backup availability is a fail-closed dependency on Stage 12.
 
 ## Task 12: Deliver manual backup/restore and final acceptance
 
