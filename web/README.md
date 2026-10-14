@@ -1,6 +1,6 @@
 # SFBB production application
 
-Stages 1–3 provide the framework, runtime configuration, process health endpoint, test tooling, checked database schema, shared-account login/authorization, and Linux ARM64 containers. The root HTML mockups remain the design reference. Ordering and administration features arrive in later stages; this foundation is not a production release.
+Stages 1–8 provide the framework, shared-account authentication, seasons, shirt styles/colors, paired artwork/uploads, order services, and responsive member shopping/lookup. The root HTML mockups remain the design reference. Admin orders/reports, placement editing and release operations remain later stages; this is not a production release. Member UI behavior is documented in [MEMBER-ORDERING.md](../docs/MEMBER-ORDERING.md).
 
 Use Node 24, npm 11.19.0, and the committed npm lockfile (the container supplies both runtime tools):
 

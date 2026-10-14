@@ -2,20 +2,23 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Role } from "../domain/types";
+import { useOptionalBag } from "../features/orders/BagProvider";
 import { Brand } from "./Brand";
 
 export function Header({ role, csrfToken, active }: { role: Role; csrfToken: string; active: "shop" | "find" | "admin" }) {
+  const bag = useOptionalBag();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   useEffect(() => {
     const checkRestoredPage = (event: PageTransitionEvent) => {
       if (event.persisted) void fetch("/api/auth/session", { cache: "no-store" }).then(response => {
         if (response.status === 401) window.location.replace("/login");
+        else if (response.ok && bag?.sessionId) void response.json().then(payload => { if (payload.data.actor.sessionId !== bag.sessionId) window.location.reload(); });
       });
     };
     window.addEventListener("pageshow", checkRestoredPage);
     return () => window.removeEventListener("pageshow", checkRestoredPage);
-  }, []);
+  }, [bag?.sessionId]);
   async function signOut() {
     setPending(true); setError("");
     try {
@@ -40,6 +43,7 @@ export function Header({ role, csrfToken, active }: { role: Role; csrfToken: str
       <div className="header-actions">
         {role === "admin" && <Link className="admin-link desktop-only" href="/admin" aria-current={active === "admin" ? "page" : undefined}>Admin</Link>}
         <button type="button" className="text-button" onClick={signOut} disabled={pending}>{pending ? "Signing out…" : "Sign out"}</button>
+        {bag && <button className="cart-button" type="button" onClick={bag.openBag}>Bag <span>{bag.state.lines.reduce((sum, l) => sum + l.quantity, 0)}</span></button>}
       </div>
     </header>
     {error && <p className="header-error" role="alert">{error}</p>}

@@ -12,7 +12,7 @@ import { submitSchema, memberEditSchema, adminEditSchema, idempotencySchema, par
 const include = { lines: { orderBy: { position: "asc" } }, season: true } as const;
 type LoadedOrder = Prisma.OrderGetPayload<{ include: typeof include }>;
 type Prepared = OrderLineInput & { unitPriceCents: number; styleName: string; artworkSetName: string; colorName: string; colorHex: string; sizeLabel: string; originalLineId?: string };
-export type OrderContext = RequestContext & { preview?: boolean };
+export type OrderContext = RequestContext & { preview?: boolean; expectedCatalogVersion?: number };
 const missing = () => new AppError("ORDER_NOT_FOUND", 404, "Order not found. Check the six-character code and try again.");
 function admin(ctx: RequestContext) { if (ctx.actor.role !== "admin") throw new AppError("FORBIDDEN", 403, "Administrator access is required."); }
 function view(order: LoadedOrder): OrderView {
@@ -56,11 +56,12 @@ export function createOrderService(client: PrismaClient = db, options: { generat
   if (outcome.error) throw outcome.error; return outcome.order!;
  }
 
- async function edit(ctx: RequestContext, key: string, expectedVersion: number, raw: unknown, asAdmin: boolean) {
+ async function edit(ctx: OrderContext, key: string, expectedVersion: number, raw: unknown, asAdmin: boolean) {
   if (asAdmin) admin(ctx);
   const input = asAdmin ? parseOrder(adminEditSchema, raw) : parseOrder(memberEditSchema, raw);
   return mutation(ctx, async (tx, now) => {
    const order = await findOrder(tx, ctx, key, expectedVersion); memberMayChange(ctx, order, now);
+   if (!asAdmin && ctx.expectedCatalogVersion !== undefined && order.season.version !== ctx.expectedCatalogVersion) throw new AppError("CATALOG_CHANGED", 409, "The collection changed. Review your bag before saving.");
    if (!asAdmin && order.cancelled) throw new AppError("ORDER_CANCELLED", 409, "Restore this order before editing it.");
    const seen = new Set<string>(), rows: Prepared[] = [];
    for (const line of input.lines) {
@@ -101,6 +102,7 @@ export function createOrderService(client: PrismaClient = db, options: { generat
     if (previous) { if (previous.requestHash !== requestHash) throw new AppError("IDEMPOTENCY_CONFLICT", 409, "This checkout key was already used with a different order."); return JSON.parse(previous.responseJson) as OrderView; }
     const season = await tx.season.findUnique({ where: { id: input.seasonId } });
     if (!season || !isOrderingOpen(season, now)) throw new AppError("ORDERING_CLOSED", 409, "This season is not accepting orders.");
+    if (ctx.expectedCatalogVersion !== undefined && season.version !== ctx.expectedCatalogVersion) throw new AppError("CATALOG_CHANGED", 409, "The collection changed. Review your bag before ordering.");
     const prepared: Prepared[] = []; for (const line of lines) prepared.push(await newLine(tx, season.id, line)); cartTotal(prepared);
     let code: string | null = null;
     for (let i=0;i<20;i++) { const candidate = (options.generateCode ?? generateOrderCode)(); if (!normalizeCode(candidate) || normalizeCode(candidate) !== candidate) throw new AppError("CODE_UNAVAILABLE", 503, "Unable to assign an order code. Please try again."); if (!await tx.order.findUnique({ where: { code: candidate }, select: { id: true } })) { code = candidate; break; } }

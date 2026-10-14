@@ -222,12 +222,12 @@ Submit input is `{ seasonId, fullName, note, lines: OrderLineInput[] }`. Member 
 
 **Interfaces:** Components consume `StyleView`, `OrderView`, `CompositeSpec`, and Task 7 APIs. `Modal` exposes `{ open, title, onClose, children }`; cart is an explicit reducer with `ADD`, `SET_QUANTITY`, `REMOVE`, `LOAD_ORDER`, `CLEAR`, `REMOVE_UNAVAILABLE` actions. Keep ordinary/test carts in session state, not a public order draft table.
 
-- [ ] Write browser tests for login→shop→variant→bag→checkout→confirmation→lookup; single-set addition with no selector; validation errors; copy code; edit/cancel/restore rules; unexpected price/availability refresh; and stale edit errors without losing the user's unsaved inputs.
-- [ ] Port the mockup visual language into scoped React/CSS components. Keep removed badges/info-strip absent, one Admin link on desktop, matching destructive typography, front/back toggle, and all modal save semantics.
-- [ ] Implement test-bag mode only for authorized admin preview routes; show explanatory copy and disabled checkout. Switching seasons clears cart/member edit state. Member live shop selects the open published season; closed/scheduled fallback is read-only.
-- [ ] Implement accessible focus management, Escape, internal scroll, and curtain pointer-start/end handling. Write `drag_inside_to_curtain_keeps_dialog_open` and `curtain_click_closes_dialog` tests, plus keyboard navigation/focus restoration.
-- [ ] Recreate mobile ≤600px, test at 390×844 and 320×740, with no horizontal overflow. Assert size/input/Add are each 46px with identical top/bottom alignment and 14px/20px type. Admin sessions still render the mobile shop; no mobile iframe in production.
-- [ ] Run `npm run test:e2e -- member.spec.ts mobile.spec.ts dialogs.spec.ts`; capture visual baselines only after inspecting them against the mockups. No real band member orders are created during testing; use isolated test databases. Commit member UI.
+- [x] Write browser tests for login→shop→variant→bag→checkout→confirmation→lookup; single-set addition with no selector; validation errors; copy code; edit/cancel/restore rules; unexpected price/availability refresh; and stale edit errors without losing the user's unsaved inputs.
+- [x] Port the mockup visual language into scoped React/CSS components. Keep removed badges/info-strip absent, one Admin link on desktop, matching destructive typography, front/back toggle, and all modal save semantics.
+- [x] Implement test-bag mode only for authorized admin preview routes; show explanatory copy and disabled checkout. Switching seasons clears cart/member edit state. Member live shop selects the open published season; closed/scheduled fallback is read-only.
+- [x] Implement accessible focus management, Escape, internal scroll, and curtain pointer-start/end handling. Write `drag_inside_to_curtain_keeps_dialog_open` and `curtain_click_closes_dialog` tests, plus keyboard navigation/focus restoration.
+- [x] Recreate mobile ≤600px, test at 390×844 and 320×740, with no horizontal overflow. Assert size/input/Add are each 46px with identical top/bottom alignment and 14px/20px type. Admin sessions still render the mobile shop; no mobile iframe in production.
+- [x] Run `npm run test:e2e -- member.spec.ts mobile.spec.ts dialogs.spec.ts`; capture visual baselines only after inspecting them against the mockups. No real band member orders are created during testing; use isolated test databases. Commit member UI.
 
 **Stage 3 handoff:** Logout clears `sfbb:cart` and `sfbb:editing-order` and emits `sfbb:signout`. Bind persisted member state to the verified server session ID; inaccessible storage must not prevent sign-out or allow a later session to inherit an old bag.
 

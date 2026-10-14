@@ -117,3 +117,12 @@ it("failed member mutation code guesses share the lookup limit", async () => {
  for (let i=0;i<10;i++) await expect(service.cancelOrder(member, "ZZZ999", 1)).rejects.toMatchObject({ code: "ORDER_NOT_FOUND" });
  await expect(service.lookupOrder(member, first.code)).rejects.toMatchObject({ code: "LOOKUP_THROTTLED" });
 });
+
+it("checkout catalog version rejects a price race before creating an order, but permits cached replay", async () => {
+ const payload = input(), key = randomUUID();
+ await expect(service.submitOrder({ ...member, expectedCatalogVersion: 99 }, payload, key)).rejects.toMatchObject({ code: "CATALOG_CHANGED", status: 409 });
+ expect(await database.client.order.count()).toBe(0);
+ const order = await service.submitOrder({ ...member, expectedCatalogVersion: 1 }, payload, key);
+ await database.client.season.update({ where: { id: catalog.season.id }, data: { version: { increment: 1 } } });
+ expect((await service.submitOrder({ ...member, expectedCatalogVersion: 1 }, payload, key)).id).toBe(order.id);
+});
