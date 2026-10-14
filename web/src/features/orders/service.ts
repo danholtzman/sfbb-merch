@@ -15,7 +15,7 @@ type Prepared = OrderLineInput & { unitPriceCents: number; styleName: string; ar
 export type OrderContext = RequestContext & { preview?: boolean; expectedCatalogVersion?: number };
 const missing = () => new AppError("ORDER_NOT_FOUND", 404, "Order not found. Check the six-character code and try again.");
 function admin(ctx: RequestContext) { if (ctx.actor.role !== "admin") throw new AppError("FORBIDDEN", 403, "Administrator access is required."); }
-function view(order: LoadedOrder): OrderView {
+export function toOrderView(order: LoadedOrder): OrderView {
  return { id: order.id, code: order.code, seasonId: order.seasonId, fullName: order.fullName, note: order.note, progress: order.progress, cancelled: order.cancelled, version: order.version, lines: order.lines.map(l => ({ id: l.id, styleId: l.styleId, artworkSetId: l.artworkSetId, colorId: l.colorId, sizeId: l.sizeId, quantity: l.quantity, unitPriceCents: l.unitPriceCents, styleName: l.styleName, artworkSetName: l.artworkSetName, colorName: l.colorName, colorHex: l.colorHex, sizeLabel: l.sizeLabel })), amountOwedCents: order.cancelled || order.progress === "COMPLETE" ? 0 : cartTotal(order.lines) };
 }
 async function session(tx: DbTransaction, ctx: RequestContext, now: Date) {
@@ -79,14 +79,14 @@ export function createOrderService(client: PrismaClient = db, options: { generat
    assertVersionWrite((await tx.order.updateMany({ where: { id: order.id, version: expectedVersion }, data: { fullName: input.fullName, note: input.note, version: { increment: 1 } } })).count);
    await tx.orderLine.deleteMany({ where: { orderId: order.id, id: { notIn: prepared.flatMap(l => l.originalLineId ? [l.originalLineId] : []) } } });
    for (const [position, row] of prepared.entries()) { const { originalLineId, ...data } = row; if (originalLineId) await tx.orderLine.update({ where: { id: originalLineId }, data: { ...data, position } }); else await tx.orderLine.create({ data: { orderId: order.id, ...data, position } }); }
-   return view(await tx.order.findUniqueOrThrow({ where: { id: order.id }, include }));
+   return toOrderView(await tx.order.findUniqueOrThrow({ where: { id: order.id }, include }));
   });
  }
  async function cancellation(ctx: RequestContext, key: string, version: number, cancelled: boolean) {
   return mutation(ctx, async (tx, now) => { const order = await findOrder(tx, ctx, key, version); memberMayChange(ctx, order, now);
-   if (order.cancelled === cancelled) return view(order);
+   if (order.cancelled === cancelled) return toOrderView(order);
    assertVersionWrite((await tx.order.updateMany({ where: { id: order.id, version }, data: { cancelled, version: { increment: 1 } } })).count);
-   return view(await tx.order.findUniqueOrThrow({ where: { id: order.id }, include }));
+   return toOrderView(await tx.order.findUniqueOrThrow({ where: { id: order.id }, include }));
   });
  }
  return {
@@ -108,7 +108,7 @@ export function createOrderService(client: PrismaClient = db, options: { generat
     for (let i=0;i<20;i++) { const candidate = (options.generateCode ?? generateOrderCode)(); if (!normalizeCode(candidate) || normalizeCode(candidate) !== candidate) throw new AppError("CODE_UNAVAILABLE", 503, "Unable to assign an order code. Please try again."); if (!await tx.order.findUnique({ where: { code: candidate }, select: { id: true } })) { code = candidate; break; } }
     if (!code) throw new AppError("CODE_UNAVAILABLE", 503, "Unable to assign an order code. Please try again.");
     const order = await tx.order.create({ data: { seasonId: season.id, code, fullName: input.fullName, note: input.note, lines: { create: prepared.map((line, position) => ({ ...line, position })) } }, include });
-    const result = view(order);
+    const result = toOrderView(order);
     await tx.idempotencyRecord.create({ data: { sessionId: live.id, key, requestHash, responseJson: JSON.stringify(result), responseStatus: 200, orderId: order.id, expiresAt: live.expiresAt } }); return result;
    }, client);
   },
@@ -118,7 +118,7 @@ export function createOrderService(client: PrismaClient = db, options: { generat
     const now = clock(ctx); await session(tx, ctx, now);
     if (await isRateLimited(tx, bucket, now, 10)) return { error: new AppError("LOOKUP_THROTTLED", 429, "Too many failed lookups. Please try again in 15 minutes.") };
     const code = normalizeCode(rawCode), order = code ? await tx.order.findUnique({ where: { code }, include }) : null;
-    if (!order) { await recordFailure(tx, bucket, now, 15*60*1000); return { error: missing() }; } return { order: view(order) };
+    if (!order) { await recordFailure(tx, bucket, now, 15*60*1000); return { error: missing() }; } return { order: toOrderView(order) };
    }, client);
    if (outcome.error) throw outcome.error; return outcome.order!;
   },
@@ -131,12 +131,12 @@ export function createOrderService(client: PrismaClient = db, options: { generat
    return withTransaction(async tx => { const now = clock(ctx); await session(tx, ctx, now); const order = await findOrder(tx, ctx, id, version);
     if (order.cancelled) throw new AppError("ORDER_CANCELLED", 409, "Restore this order before changing its progress.");
     assertVersionWrite((await tx.order.updateMany({ where: { id, version }, data: { progress, version: { increment: 1 } } })).count);
-    return view(await tx.order.findUniqueOrThrow({ where: { id }, include }));
+    return toOrderView(await tx.order.findUniqueOrThrow({ where: { id }, include }));
    }, client);
   },
   async listOrders(ctx: RequestContext, seasonId: string, search = ""): Promise<OrderView[]> {
    admin(ctx); parseOrder(idSchema, seasonId); if (search.length > 128) throw new AppError("INVALID_INPUT", 422, "Search is too long.");
-   return withTransaction(async tx => { await session(tx, ctx, clock(ctx)); const rows = await tx.order.findMany({ where: { seasonId }, orderBy: [{ fullName: "asc" }, { code: "asc" }], include }); const needle = search.normalize("NFKC").trim().toLowerCase(); return rows.filter(o => o.fullName.normalize("NFKC").toLowerCase().includes(needle) || o.code.toLowerCase().includes(needle)).map(view); }, client);
+   return withTransaction(async tx => { await session(tx, ctx, clock(ctx)); const rows = await tx.order.findMany({ where: { seasonId }, orderBy: [{ fullName: "asc" }, { code: "asc" }], include }); const needle = search.normalize("NFKC").trim().toLowerCase(); return rows.filter(o => o.fullName.normalize("NFKC").toLowerCase().includes(needle) || o.code.toLowerCase().includes(needle)).map(toOrderView); }, client);
   },
  };
 }

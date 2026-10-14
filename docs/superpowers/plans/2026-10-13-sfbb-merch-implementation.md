@@ -237,15 +237,15 @@ Submit input is `{ seasonId, fullName, note, lines: OrderLineInput[] }`. Member 
 
 **Interfaces:** `billingRows(orders: OrderView[]): string[][]`; `deliveryRows(orders: OrderView[]): string[][]`; `manufacturerRows(orders: OrderView[]): string[][]`; `csvEncode(rows: string[][]): Uint8Array`; `reportFilename(season: SeasonView, report: 'billing' | 'member-delivery' | 'manufacturer-order'): string`. DB selection is selected-season scoped and independent of table search.
 
-- [ ] Write report tests for all three exact schemas below, cancelled exclusion, Complete-zero billing, matching variants across Open/delivered/Complete, separate members/order codes, color snapshots, quotes/multiline notes, Unicode slugs, formula prefixes, deterministic order, and empty-header-only reports.
-- [ ] Implement exact headers:
+- [x] Write report tests for all three exact schemas below, cancelled exclusion, Complete-zero billing, matching variants across Open/delivered/Complete, separate members/order codes, color snapshots, quotes/multiline notes, Unicode slugs, formula prefixes, deterministic order, and empty-header-only reports.
+- [x] Implement exact headers:
   - Billing: `Order code,Full name,Quantity,Amount owed,Note`.
   - Member delivery: `Full name,Order code,Item,Artwork set,Color,Size,Quantity,Note`.
   - Manufacturer: `Item,Artwork set,Color,Size,Quantity`.
-- [ ] Implement UTF-8 BOM/CRLF/quoted cells/formula neutralization. Filenames are `sfbb-{normalized-season-slug}-{opensOn}-{report}.csv`; slug ≤80 characters, fallback `season`. All files omit Season and Status; all exclude cancellations. Member-delivery includes already delivered/Complete orders; manufacturer totals all non-cancelled variants without splitting by progress.
-- [ ] Implement selected-season dashboard metrics, one combined Status column, cancelled badge, search, View, direct admin item editor, cancellation confirmation, restoration, and immediate progress dropdown updates. Retain code/season/progress on edits. Show version conflicts without silently overwriting.
-- [ ] Put three exports together with descriptions; admin selection/search changes cannot export another season or filter out unmatched table rows accidentally. Align View/dropdown heights at 40px, prevent arrow wrapping, and use merged Delivered · unpaid label.
-- [ ] Run `npm test -- tests/integration/reports.test.ts` and `npm run test:e2e -- admin-orders.spec.ts`. Parse browser-downloaded CSVs and assert headers/data against fixture DB. Commit admin reports.
+- [x] Implement UTF-8 BOM/CRLF/quoted cells/formula neutralization. Filenames are `sfbb-{normalized-season-slug}-{opensOn}-{report}.csv`; slug ≤80 characters, fallback `season`. All files omit Season and Status; all exclude cancellations. Member-delivery includes already delivered/Complete orders; manufacturer totals all non-cancelled variants without splitting by progress.
+- [x] Implement selected-season dashboard metrics, one combined Status column, cancelled badge, search, View, direct admin item editor, cancellation confirmation, restoration, and immediate progress dropdown updates. Retain code/season/progress on edits. Show version conflicts without silently overwriting.
+- [x] Put three exports together with descriptions; admin selection/search changes cannot export another season or filter out unmatched table rows accidentally. Align View/dropdown heights at 40px, prevent arrow wrapping, and use merged Delivered · unpaid label.
+- [x] Run `npm test -- tests/integration/reports.test.ts` and `npm run test:e2e -- admin-orders.spec.ts`. Parse browser-downloaded CSVs and assert headers/data against fixture DB. Commit admin reports.
 
 ## Task 10: Build the side-aware artwork placement editor
 

@@ -3,7 +3,7 @@ import { useState, type FormEvent } from "react";
 import { Modal } from "../../components/Modal";
 import type { SeasonSummary } from "./service";
 import type { CreateSeasonInput, SeasonSettingsInput } from "./validation";
-export type SeasonError = { message: string; fields?: Record<string, string> };
+export type SeasonError = { message: string; code?: string; fields?: Record<string, string> };
 export function ErrorMessage({ error }: { error: SeasonError | null }) {
   return error ? <div role="alert" className="form-error"><p>{error.message}</p>{error.fields && <ul>{Object.entries(error.fields).map(([key, value]) => <li key={key}>{value}</li>)}</ul>}</div> : null;
 }

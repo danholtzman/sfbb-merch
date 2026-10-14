@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { AdminOrders } from "../orders/AdminOrders";
 import { StyleList } from "../catalog/StyleList";
 import { SeasonList, seasonDates } from "./SeasonList";
 import { SeasonDialog, ErrorMessage, type SeasonError } from "./SeasonDialog";
@@ -51,7 +52,7 @@ export function AdminSeasons({ initial, csrfToken, today, now }: { initial: Seas
     <div role="tablist" aria-label="Administration" className="admin-tabs">{(["orders", "merchandise", "seasons"] as const).map(t => <button key={t} role="tab" id={`tab-${t}`} aria-controls={`panel-${t}`} aria-selected={tab === t} onClick={() => { setTab(t); setError(null); }}>{t[0].toUpperCase() + t.slice(1)}</button>)}</div>
     <ErrorMessage error={error} />
     <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
-      {tab === "seasons" ? <SeasonList seasons={seasons} onNew={() => setDialog({ season: null })} onManage={season => { select(season.id); setDialog({ season }); }} onPublish={s => void publish(s)} busy={busy} /> : tab === "merchandise" && selected ? <StyleList key={selected.id} seasonId={selected.id} csrfToken={csrfToken} onCatalogChanged={refresh} /> : <section className="admin-placeholder"><h2>Orders</h2><p>Order management is not available yet.</p></section>}
+      {tab === "seasons" ? <SeasonList seasons={seasons} onNew={() => setDialog({ season: null })} onManage={season => { select(season.id); setDialog({ season }); }} onPublish={s => void publish(s)} busy={busy} /> : tab === "merchandise" && selected ? <StyleList key={selected.id} seasonId={selected.id} csrfToken={csrfToken} onCatalogChanged={refresh} /> : <AdminOrders key={selected?.id ?? "empty"} season={selected!} csrfToken={csrfToken} onOrdersChanged={refresh} />}
     </div>
     {dialog && <SeasonDialog key={dialog.season?.id ?? "new"} season={dialog.season} seasons={seasons} today={today} onClose={() => setDialog(null)} onSubmit={save} onDelete={remove} />}
   </section>;

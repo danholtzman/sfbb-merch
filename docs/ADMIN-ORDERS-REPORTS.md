@@ -1,0 +1,53 @@
+# Admin orders and CSV reports (Stage 9)
+
+The desktop Orders tab uses the selected-season banner. It shows every order in that season, one combined Status column, and server-backed details/editor dialogs. The mobile admin session continues to show the member shop; this dashboard is not a mobile administration flow.
+
+## Dashboard and mutations
+
+Metrics are calculated from all loaded orders in the selected season, independently of search:
+
+- Active orders: non-cancelled order count, including Complete orders.
+- Items to fulfill: summed quantities in non-cancelled Open orders.
+- Total owed: complete stored line totals for non-cancelled orders except Complete, whose balance is zero. There is no partial-payment calculation.
+
+Search matches member name or order code, case-insensitively with Unicode compatibility normalization. It filters displayed rows only. The server list endpoint remains `/api/admin/orders?seasonId=<UUID>`; the existing optional server search is also available for API consumers. Changing selected seasons mounts a new dashboard, resets search/dialog state, and follows the existing bag/edit-session clearing behavior.
+
+Status choices are Open, Delivered · unpaid and Complete. A change saves immediately through the versioned progress API; the control shows the last server-confirmed value and is disabled while saving. Admins may correct progress in either direction. Cancelled rows display one Cancelled badge instead of a contradictory disabled status select. View and status controls are 40px tall; the View arrow stays on one line.
+
+View opens saved item details, code, note, season and the single displayed status. Edit order and Cancel order are available for active orders regardless of ordering dates or progress. Cancellation requires a named confirmation; Keep order returns to details. Cancelled orders offer Restore order, preserving prior progress and all snapshots. Successful mutations immediately update the local table/metrics and refresh season order counts.
+
+## Direct admin editor
+
+Edit order opens a separate explicit-save dialog. It has full name, optional note, item rows, Add item, Remove item, Save order, and Discard changes. Each row has style, color, size, positive whole-number quantity and an explicit USD unit-price override. Artwork-set selection appears when a choice is needed, including a retained historical set no longer offered. A single available set is implicit. At least one row is required; the server limits an order to 100 input rows.
+
+Opening the editor refreshes the selected season's catalog. Changing a row's style resets its color, size, artwork set and default price to that style; quantity and the original line reference are retained. Existing rows start with stored prices. Unchanged variant identities preserve ordered style/set/color/size descriptions and swatches, including after the catalog color is renamed/recolored. Changing only quantity or explicit price does not rewrite those snapshots. Adding/changing variants is validated against the current season catalog by the server.
+
+An unavailable historical set can be retained only on its original unchanged variant; changing its color/size resets it to a currently offered set. Original line IDs must belong to the edited order and cannot be repeated. Saves retain code, season, cancellation and progress, and use the original order version. A stale save displays an error while keeping unsaved fields intact; discard/reopen loads the latest saved order. Closing/discarding the editor leaves server data unchanged. Cancelled/Complete owed amounts remain zero even when an admin edits item prices.
+
+All mutations use the existing server role, same-origin and CSRF checks. Hiding controls does not authorize requests. No payment or email integration is added.
+
+## Report downloads
+
+`GET /api/admin/reports/{billing|member-delivery|manufacturer-order}?seasonId=<UUID>` requires a live admin session. The service rechecks expiry inside the database transaction, reads season metadata and its complete order set together, and returns a private/no-store CSV attachment with nosniff. It never uses dashboard search. Members/unauthenticated requests receive 403/401; unknown report names or malformed IDs are rejected.
+
+All reports exclude cancelled orders, omit Season/Status columns, and identify the collection in the filename:
+
+`sfbb-{season-slug}-{opensOn}-{report}.csv`
+
+The slug uses Unicode decomposition, removes combining marks, lowercases ASCII letters/numbers, converts other runs to hyphens, trims boundaries, limits to 80 characters, and falls back to `season`. The opening date is ISO `YYYY-MM-DD`.
+
+| Report | Exact header | Row behavior |
+| --- | --- | --- |
+| Billing | `Order code,Full name,Quantity,Amount owed,Note` | One row per non-cancelled order; quantity totals all items; Complete owes `0.00`; other amounts use stored prices. |
+| Member delivery | `Full name,Order code,Item,Artwork set,Color,Size,Quantity,Note` | Combine matching variants within one order, never across codes/members; repeat member/code/note on every item row. Includes delivered/Complete orders. |
+| Manufacturer order | `Item,Artwork set,Color,Size,Quantity` | Combine matching variants across all non-cancelled orders/progress states. Includes delivered/Complete orders. |
+
+Matching packing/manufacturer variants include stable style/set/color/size references and ordered names/swatches. Unit price does not split these variants because those reports do not list prices. Different styles sharing a display name, or historically distinct ordered colors, remain separate groups. Billing/delivery order by member name, then code; delivery keeps original item order. Manufacturer rows sort by displayed item/set/color/size, with stable identity as a tie-breaker. Sorting uses deterministic string comparison, independent of the machine's locale.
+
+Money is integer-cent based. Report quantities and dashboard aggregate sums use BigInt; CSV currency has exactly two decimal places and no currency symbol. Every cell is quoted, embedded quotes are doubled, commas/newlines and Unicode are preserved, record separators are CRLF, and UTF-8 has a BOM. Text beginning with spreadsheet-formula prefixes (`=`, `+`, `-`, `@`, tab, carriage return, or leading whitespace before a formula prefix) receives an apostrophe prefix. Empty results still contain the exact header.
+
+## Verification and release boundary
+
+Tests use disposable migrated SQLite databases and test-only credentials/uploads. The admin browser suite parses actual downloaded files independently of production CSV encoding, checks headers/quantities/notes/filenames, verifies search-independent exports and empty-season exports, and tests role guards. It also covers Closed/Complete editing, price/color snapshots, dependent variant reset, minimum item count, cancel/restore, version conflicts, matching action typography and 40px table controls.
+
+The default browser runner uses four fresh-server passes: existing admin/catalog/auth UI regression, order API acceptance, member flows, and admin orders/reports. Historical order protection is never weakened to delete fixture data. Screenshots are generated for visual inspection and remain untracked. The Stage 10 placement editor and Stage 11/12 release/backup procedures remain separate work; no Pi, Caddy, Cloudflare or production member records are changed here.

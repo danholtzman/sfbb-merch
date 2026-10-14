@@ -281,3 +281,38 @@ p { color: var(--muted); line-height: 1.6; }
 .bag-drawer .bag-items { flex: 1; min-height: 0; overflow-y: auto; }
 
 .bag-drawer .bag-items { align-content: start; }
+/* Desktop administration: order progress, packing and billing. */
+.order-stats { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 22px; margin: 34px 0; }
+.order-stats article { border: 1px solid var(--line); border-radius: 7px; padding: 26px; display: grid; gap: 20px; min-width: 0; }
+.order-stats article > span { color: #656a72; font-size: 10px; letter-spacing: 1.4px; }
+.order-stats article > strong { font-size: 36px; letter-spacing: -1px; overflow-wrap: anywhere; }
+.order-stats small { color: #656a72; font-size: 11px; }
+.order-exports { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 24px; background: #f8f9fb; border: 1px solid var(--line); border-radius: 6px; padding: 20px; margin: 30px 0 40px; }
+.order-exports .secondary { font-size: 12px; min-height: 40px; padding: 10px 14px; }
+.order-exports p { font-size: 11px; margin-bottom: 0; }
+.table-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 26px; }
+.table-toolbar h2 { margin: 0; font-size: 24px; letter-spacing: -.6px; }
+.table-toolbar input { max-width: 300px; height: 40px; font-size: 12px; }
+.orders-table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; }
+.orders-table { border-collapse: collapse; width: 100%; font-size: 12px; }
+.orders-table th { text-align: left; font-size: 10px; color: #656a72; letter-spacing: .8px; background: #f7f8fa; }
+.orders-table th, .orders-table td { padding: 20px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.orders-table tr:last-child td { border: 0; }
+.orders-table td:first-child { min-width: 130px; max-width: 200px; overflow-wrap: anywhere; }
+.orders-table td:nth-child(2) { width: 100%; min-width: 160px; }
+.orders-table small { display: block; color: #656a72; font-size: 11px; margin-top: 7px; overflow-wrap: anywhere; }
+.order-status-control { height: 40px; width: 180px; padding: 8px 10px; font-size: 12px; }
+.orders-table .view-order { height: 40px; min-height: 40px; padding: 8px 12px; font-size: 12px; white-space: nowrap; }
+.status-cancelled { color: #ad2929; background: #f4e8e8; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.admin-order-editor { width: min(820px,calc(100vw - 48px)); }
+.admin-edit-items { display: grid; gap: 18px; }
+.admin-edit-item { border: 1px solid var(--line); border-radius: 6px; padding: 18px; }
+.edit-item-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.edit-item-heading h3 { margin: 0 !important; }
+.edit-item-heading .text-button { font-size: 12px; color: #b42323; }
+.edit-variant-fields { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14px; margin-top: 12px; }
+.admin-edit-item .field-help { margin-top: 16px; }
+.editor-total { margin: 22px 0 0; }
+@media (min-width: 601px) and (max-width: 1000px) { .order-exports { gap: 14px; padding: 16px; } .order-exports .secondary { padding: 10px; font-size: 11px; } .order-stats article { padding: 20px; } .orders-table th,.orders-table td { padding: 16px 12px; } }
+.orders-dashboard .dialog-actions button { font-weight: 600; }

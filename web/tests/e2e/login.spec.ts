@@ -37,7 +37,7 @@ test("admin desktop access and mobile member experience", async ({ page, isMobil
     await expect(page.getByRole("heading", { name: "Merchandise admin" })).not.toBeVisible();
   } else {
     await expect(page.getByRole("heading", { name: "Merchandise admin" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Orders", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Member orders", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Admin", exact: true })).toHaveCount(1);
   }
   expect((await page.request.get("/api/admin/session")).status()).toBe(200);
