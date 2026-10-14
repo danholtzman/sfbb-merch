@@ -316,3 +316,26 @@ p { color: var(--muted); line-height: 1.6; }
 .editor-total { margin: 22px 0 0; }
 @media (min-width: 601px) and (max-width: 1000px) { .order-exports { gap: 14px; padding: 16px; } .order-exports .secondary { padding: 10px; font-size: 11px; } .order-stats article { padding: 20px; } .orders-table th,.orders-table td { padding: 16px 12px; } }
 .orders-dashboard .dialog-actions button { font-weight: 600; }
+.preview-open { display: block; width: 100%; padding: 0; border-radius: 5px; }
+.preview-open:hover { background: #e6eaf2; }
+.preview-edit { color: var(--blue); font-weight: 600; font-size: 12px; padding: 8px 0 8px 12px; margin-left: auto; white-space: nowrap; }
+.preview-caption { flex-wrap: wrap; }
+.preview-caption > span { flex-basis: 100%; }
+.preview-caption > span:empty { display: none; }
+.placement-editor { width: min(980px,calc(100vw - 48px)); }
+.editor-layout { display: grid; grid-template-columns: minmax(0,1fr) 320px; gap: 28px; align-items: start; }
+.placement-canvas { background: #eff1f5; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; aspect-ratio: 320 / 310; }
+.placement-canvas .composite-svg { display: block; width: 100%; height: 100%; }
+.placement-guide { stroke: #1349df50; stroke-width: 1; stroke-dasharray: 4 4; pointer-events: none; }
+.placement-overlay { cursor: move; touch-action: none; outline: none; }
+.placement-overlay:focus-visible > rect { stroke-width: 3; }
+.resize-handle { fill: var(--blue); stroke: white; stroke-width: 2; cursor: nwse-resize; outline: none; }
+.resize-handle:focus-visible { stroke: #15191f; stroke-width: 3; }
+.placement-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.placement-context { margin-bottom: 18px !important; }
+.placement-editor input, .placement-editor select { min-height: 46px; font-weight: 400; }
+.editor-utilities { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.editor-utilities button { font-size: 12px; }
+.editor-hint { font-size: 11px; }
+.placement-editor .placement-upload-help { margin-top: 18px; line-height: 1.6; }
+@media (min-width: 601px) and (max-width: 850px) { .editor-layout { grid-template-columns: 1fr; } .placement-canvas { max-width: 480px; margin: auto; } }

@@ -1,6 +1,6 @@
 # Artwork, image storage, and composition
 
-Stage 6 implements paired artwork sets, blank-shirt photos, authenticated image delivery, and one shared compositor. The placement editor UI remains Stage 10. Member product cards/bags integrate the same renderer in Stage 8.
+Stage 6 implements paired artwork sets, blank-shirt photos, authenticated image delivery, and one shared compositor. Stage 10 adds the [placement editor](PLACEMENT-EDITOR.md); member cards/bags and the editor use the same renderer.
 
 ## Admin controls
 
@@ -28,13 +28,14 @@ The assets directory must resolve directly under the configured data directory; 
 | `/api/admin/artwork-sets/:id` | DELETE | JSON expectedVersion, expectedReplacementSetId |
 | `/api/admin/artwork-sets/:id/:side` | POST | Multipart file, expectedVersion |
 | `/api/admin/styles/:id/blank-photos/:side` | POST | Multipart file, expectedVersion, colorId |
-| `/api/admin/styles/:id/placements` | PATCH | JSON setId, colorId (nullable), side, values |
+| `/api/admin/styles/:id/placements` | GET | setId, colorId, side query; admin-only spec and scoped placement versions |
+| `/api/admin/styles/:id/placements` | PATCH | JSON setId, colorId (nullable), side, values, optional expectedVersion |
 | `/api/assets/:id` | GET | Authenticated canonical image bytes |
 | `/api/composites` | GET | styleId, setId, colorId, side query; CompositeSpec |
 
 All routes are dynamic Node handlers. JSON uses no-store; image bytes use private/no-store and nosniff. Asset GET requires either shared account; draft CompositeSpec is admin-only. Mutation routes require admin and CSRF. Asset URLs are `/api/assets/<uuid>`; they are the only image URLs exposed by services.
 
-Artwork replacements use expected set versions and increment set/season versions. Blank uploads use expected style versions and increment photo/style/season versions. Set creation increments the season version; deletion increments affected styles and the season. Placement saving validates style/set association, color ownership, side, and geometry, and upserts by stable shared/color scope. Placement writes currently use last-save-wins per scope, consistent with the plan's void save interface; they do not change order variant identity or price. Stage 10 must refresh affected preview state after saving.
+Artwork replacements use expected set versions and increment set/season versions. Blank uploads use expected style versions and increment photo/style/season versions. Set creation increments the season version; deletion increments affected styles and the season. Placement saving validates style/set association, color ownership, side, and geometry, and upserts by stable shared/color scope. The editor sends the scoped expectedVersion (null when absent), rejecting stale saves transactionally. Legacy API callers omitting expectedVersion retain last-save-wins behavior. Geometry does not change order variant identity or price, and preview refresh preserves unsaved order quantities.
 
 ## Shared composition
 
@@ -42,7 +43,7 @@ Artwork replacements use expected set versions and increment set/season versions
 
 The normalized canvas is 320 × 310. Blank images contain within the full canvas. Artwork contains within an 80 × 136 box centered at `(160,148)` before transformation. Transform is `translate(x*3.2,y*3.1) rotate(rotation) scale(width*3.2/80) translate(-160,-148)`. Numeric geometry uses the spec's ranges. Transparent PNG padding remains part of image fitting. Back composition never borrows the front PNG.
 
-Uploads receive new immutable asset IDs. JSON/image requests do not cache stale results; changed catalog/set/style revisions reload current CompositeSpec. Stage 8 member/bag and Stage 10 editor must reuse this renderer and invalidate their local composition state on upload/placement notifications. The `sfbb:catalog-change` removed-set event uses an empty styleId to mean that the removal applies across the selected season; cart consumers must filter by removed set IDs across styles.
+Uploads receive new immutable asset IDs. JSON/image requests do not cache stale results; changed catalog/set/style revisions reload current CompositeSpec. Member cards/bags and the editor reuse this renderer. Same-window events, same-origin BroadcastChannel notifications, and focus/visibility revalidation refresh authenticated composite data after upload/placement changes. The `sfbb:catalog-change` removed-set event uses an empty styleId to mean that the removal applies across the selected season; cart consumers must filter by removed set IDs across styles.
 
 ## Explicit cleanup
 

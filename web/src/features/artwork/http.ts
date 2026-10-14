@@ -64,6 +64,12 @@ export function compositeRead(request: Request) {
 }
 export function placementSave(request: Request, params: Promise<{ id: string }>) {
  return apiResponse(async () => { const ctx = await requireActor(request, "admin"); await authorizeMutation(request, ctx); const { id } = await params;
- const input = parseCatalog(z.strictObject({ setId: idSchema, colorId: idSchema.nullable(), side: sideSchema, values: placementSchema }), await readSmallJson(request));
- await createArtworkService().savePlacement(ctx, id, input.setId, input.side, input.colorId, input.values); return jsonData({ saved: true }); });
+ const input = parseCatalog(z.strictObject({ setId: idSchema, colorId: idSchema.nullable(), side: sideSchema, values: placementSchema, expectedVersion: versionSchema.nullable().optional() }), await readSmallJson(request));
+ await createArtworkService().savePlacement(ctx, id, input.setId, input.side, input.colorId, input.values, input.expectedVersion); return jsonData({ saved: true }); });
+}
+
+export function placementRead(request: Request, params: Promise<{ id: string }>) {
+ return apiResponse(async()=>{const ctx=await requireActor(request,"admin"), {id}=await params, query=new URL(request.url).searchParams;
+ const setId=parseCatalog(idSchema,query.get("setId")),colorId=parseCatalog(idSchema,query.get("colorId")),side=parseCatalog(sideSchema,query.get("side"));
+ return jsonData(await createArtworkService().getPlacementEditor(ctx,id,setId,colorId,side));});
 }

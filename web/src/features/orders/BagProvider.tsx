@@ -7,6 +7,7 @@ import type { OrderView, SeasonView } from "../../domain/types";
 import { CartDrawer } from "./CartDrawer";
 import { CheckoutDialog, ConfirmationDialog } from "./CheckoutDialog";
 import { OrderDetailsDialog } from "./OrderDetailsDialog";
+import { affectsPreview, subscribePreviewChanges } from "../artwork/preview-events";
 export type MemberError = { message: string; code?: string };
 const empty: CartState = { seasonId: "", preview: false, lines: [], editing: null };
 type BagContext = { state: CartState; data: ShopData | null; ready: boolean; sessionId: string; notice: string; csrfToken: string; dispatch: (action: CartAction) => void; configure: (catalog: ShopData) => void; openBag: () => void; showOrder: (order: MemberOrder) => void; request: <T>(url: string, method?: string, input?: unknown, headers?: Record<string,string>) => Promise<T> };
@@ -49,6 +50,23 @@ export function BagProvider({ sessionId, csrfToken, children }: { sessionId: str
   let payload; try { payload = await response.json(); } catch { throw { message: "Unable to read the response. Please try again." }; }
   if (!response.ok) throw payload.error; return payload.data as T;
  }
+ useEffect(() => {
+  const editing = cartRef.current.editing;
+  if (!editing) return;
+  let active = true;
+  const unsubscribe = subscribePreviewChanges(detail => {
+   const current = cartRef.current;
+   if (!current.lines.some(line => affectsPreview(detail, { styleId: line.styleId, setId: line.artworkSetId, colorId: line.colorId, side: "front" }))) return;
+   void request<MemberOrder>("/api/orders/lookup", "POST", { code: editing.code }).then(latest => {
+    const current = cartRef.current;
+    // Refresh only imagery: retain the draft quantities, snapshots and optimistic order version.
+    if (!active || latest.version !== editing.version || current.editing?.id !== editing.id || current.editing.version !== editing.version) return;
+    const next = { ...current, editing: { ...current.editing, previews: latest.previews } };
+    replaceState(next); persist(next);
+   }).catch(() => { /* A background image refresh must not discard an order draft. */ });
+  });
+  return () => { active = false; unsubscribe(); };
+ }, [state.editing?.id, state.editing?.version, csrfToken]); // eslint-disable-line react-hooks/exhaustive-deps
  async function refresh() {
   const catalog = state.editing ? (await request<MemberOrder>("/api/orders/lookup", "POST", { code: state.editing.code })).catalog : await request<ShopData>(`/api/member/catalog${state.preview ? `?previewSeasonId=${state.seasonId}` : ""}`);
   const next = cartReducer(state, { type: "REMOVE_UNAVAILABLE", catalog }); const changed = bagSignature(next) !== bagSignature(state); setData(catalog); replaceState(next); persist(next); return { catalog, changed };

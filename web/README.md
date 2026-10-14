@@ -1,6 +1,6 @@
 # SFBB production application
 
-Stages 1–9 provide the framework, shared-account authentication, seasons, shirt styles/colors, paired artwork/uploads, order services, responsive member shopping/lookup, and admin order management/CSV exports. The root HTML mockups remain the design reference. Placement editing and release operations remain later stages; this is not a production release. Member UI behavior is documented in [MEMBER-ORDERING.md](../docs/MEMBER-ORDERING.md).
+Stages 1–10 provide the framework, shared-account authentication, seasons, shirt styles/colors, paired artwork/uploads, order services, responsive member shopping/lookup, admin order management/CSV exports, and side-aware artwork placement editing. The root HTML mockups remain the design reference. Release operations remain later stages; this is not a production release. Member UI behavior is documented in [MEMBER-ORDERING.md](../docs/MEMBER-ORDERING.md).
 
 Use Node 24, npm 11.19.0, and the committed npm lockfile (the container supplies both runtime tools):
 
@@ -30,3 +30,5 @@ Database setup, migration precautions, bootstrap handoff, and invariants are doc
 Shared credentials, cookie/CSRF contracts, proxy trust, and development login setup are documented in [AUTHENTICATION.md](../docs/AUTHENTICATION.md). Browser acceptance runs use `npm run test:e2e` with a separate temporary database and test-only credentials on port 3100.
 
 Admin order workflows and exact download contracts are documented in [ADMIN-ORDERS-REPORTS.md](../docs/ADMIN-ORDERS-REPORTS.md).
+
+Artwork placement controls, geometry, save scopes, and preview refresh are documented in [PLACEMENT-EDITOR.md](../docs/PLACEMENT-EDITOR.md).

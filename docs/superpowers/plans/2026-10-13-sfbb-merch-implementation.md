@@ -253,11 +253,11 @@ Submit input is `{ seasonId, fullName, note, lines: OrderLineInput[] }`. Member 
 
 **Interfaces:** Uses Task 6 `CompositeSpec` and `savePlacement`; implements `placementTransform(values: PlacementValues): string` and `nudge(values, key, shift): PlacementValues` in the shared composite module. Editor receives `{ styleId, setId, colorId, side }`, keeping side-aware entry from both image and Edit button.
 
-- [ ] Write exact-value tests for default transform, 0.2/1 point nudges, range clamps, proportional resize, rotation, centering/reset, shared/color override precedence, side separation, and identical viewer/editor coordinate fitting with transparent PNG padding.
-- [ ] Implement pointer capture and corner resizing against the actual normalized canvas; do not base percent coordinates on a CSS-scaled image's native dimensions. Keep upload controls absent. Save targets style+set+side+scope only; changing view must not accidentally save the previous side's draft.
-- [ ] Open front/back from clickable full-width preview images as well as blue Edit links. Distinguish bold uppercase side labels from actions. Hide the set picker with one option and retain chosen color/set when opening.
-- [ ] Use the same renderer in viewer/editor and refresh affected previews after save/upload/color change. First release renders composites as SVG/HTML from authenticated asset URLs; avoid storing generated preview files unless later performance testing requires them.
-- [ ] Run `npm test -- tests/unit/placement.test.ts` and `npm run test:e2e -- placement.spec.ts`; inspect front/back PNG fixtures and colored blank photos in screenshots. Commit editor.
+- [x] Write exact-value tests for default transform, 0.2/1 point nudges, range clamps, proportional resize, rotation, centering/reset, shared/color override precedence, side separation, and identical viewer/editor coordinate fitting with transparent PNG padding.
+- [x] Implement pointer capture and corner resizing against the actual normalized canvas; do not base percent coordinates on a CSS-scaled image's native dimensions. Keep upload controls absent. Save targets style+set+side+scope only; changing view must not accidentally save the previous side's draft.
+- [x] Open front/back from clickable full-width preview images as well as blue Edit links. Distinguish bold uppercase side labels from actions. Hide the set picker with one option and retain chosen color/set when opening.
+- [x] Use the same renderer in viewer/editor and refresh affected previews after save/upload/color change. First release renders composites as SVG/HTML from authenticated asset URLs; avoid storing generated preview files unless later performance testing requires them.
+- [x] Run `npm test -- tests/unit/placement.test.ts` and `npm run test:e2e -- placement.spec.ts`; inspect front/back PNG fixtures and colored blank photos in screenshots. Commit editor.
 
 ## Task 11: Package manual Mac-to-Pi deployment without changing existing services
 

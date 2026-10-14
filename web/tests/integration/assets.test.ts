@@ -99,3 +99,23 @@ it("deletion cannot silently use a different replacement than the named confirma
  await expect(service.deleteArtworkSet(ctx, c.artwork.id, 1, other.id)).rejects.toMatchObject({ code: "STALE_VERSION" });
  expect(await database.client.artworkSet.findUnique({ where: { id: c.artwork.id } })).not.toBeNull();
 });
+
+it("placement editor reads shared/override versions per side and rejects stale scoped saves", async () => {
+ const c = await seedCatalog(database.client);
+ await service.savePlacement(ctx,c.style.id,c.artwork.id,"front",null,{x:40,y:40,width:20,rotation:10});
+ await service.savePlacement(ctx,c.style.id,c.artwork.id,"front",c.color.id,{x:60,y:60,width:30,rotation:-10});
+ const editor=await service.getPlacementEditor(ctx,c.style.id,c.artwork.id,c.color.id,"front");
+ expect(editor).toMatchObject({spec:{placement:{x:60}},shared:{version:1,values:{x:40}},override:{version:1,values:{x:60}}});
+ expect(await service.getPlacementEditor(ctx,c.style.id,c.artwork.id,c.color.id,"back")).toMatchObject({shared:null,override:null,spec:{placement:{x:50,y:47.7}}});
+ await expect(service.getPlacementEditor({...ctx,actor:{...ctx.actor,role:"member"}},c.style.id,c.artwork.id,c.color.id,"front")).rejects.toMatchObject({status:403});
+ await service.savePlacement(ctx,c.style.id,c.artwork.id,"front",null,{x:45,y:40,width:20,rotation:10},1);
+ await expect(service.savePlacement(ctx,c.style.id,c.artwork.id,"front",null,{x:90,y:40,width:20,rotation:10},1)).rejects.toMatchObject({code:"STALE_VERSION",status:409});
+ await expect(service.savePlacement(ctx,c.style.id,c.artwork.id,"front",null,{x:90,y:40,width:20,rotation:10},null)).rejects.toMatchObject({code:"STALE_VERSION",status:409});
+ expect((await service.getPlacementEditor(ctx,c.style.id,c.artwork.id,c.color.id,"front")).shared?.values.x).toBe(45);
+});
+it("stale placement writes leave the last saved scoped geometry intact", async () => {
+ const c = await seedCatalog(database.client), values={x:40,y:40,width:20,rotation:0};
+ await service.savePlacement(ctx,c.style.id,c.artwork.id,"front",null,values);
+ await expect(service.savePlacement(ctx,c.style.id,c.artwork.id,"front",null,{...values,x:90},99)).rejects.toMatchObject({code:"STALE_VERSION",status:409});
+ expect((await service.getCompositeSpec(c.style.id,c.artwork.id,c.color.id,"front")).placement.x).toBe(40);
+});

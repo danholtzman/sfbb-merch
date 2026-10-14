@@ -6,7 +6,7 @@ import { AppError } from "../../domain/errors";
 import { idSchema, sideSchema, versionSchema, placementSchema, normalizedName } from "../../domain/schemas";
 import { parseCatalog } from "../catalog/colors";
 import { validateSeasonReadiness } from "../seasons/service";
-import { resolvePlacement, type CompositeSpec } from "./composite";
+import { resolvePlacement, type CompositeSpec, type PlacementEditorData } from "./composite";
 import { assetUrl } from "./assets";
 function admin(ctx: RequestContext) { if (ctx.actor.role !== "admin") throw new AppError("FORBIDDEN", 403, "Administrator access is required."); }
 async function setRecord(tx: DbTransaction, id: string, version: number) {
@@ -21,7 +21,18 @@ async function styleColor(tx: DbTransaction, styleId: string, colorId: string | 
 }
 async function seasonChanged(tx: DbTransaction, seasonId: string) { await tx.season.update({ where: { id: seasonId }, data: { version: { increment: 1 } } }); }
 async function validatePublished(tx: DbTransaction, seasonId: string) { if ((await tx.season.findUniqueOrThrow({ where: { id: seasonId } })).lifecycle === "PUBLISHED") await validateSeasonReadiness(tx, seasonId); }
+async function compose(tx: DbTransaction, styleId: string, setId: string, colorId: string, side: Side): Promise<PlacementEditorData> {
+ parseCatalog(sideSchema,side); parseCatalog(idSchema,setId); parseCatalog(idSchema,colorId);
+ const style=await styleColor(tx,styleId,colorId), color=await tx.styleColor.findUniqueOrThrow({where:{id:colorId}});
+ const association=await tx.styleArtworkSet.findFirst({where:{styleId,artworkSetId:setId,artworkSet:{seasonId:style.seasonId}},include:{artworkSet:true}});
+ if(!association)throw new AppError("INVALID_SET",422,"The artwork set is not available for this style.");
+ const photos=await tx.blankPhoto.findMany({where:{styleId,side,scopeKey:{in:["all",colorId]}}}), placements=await tx.placement.findMany({where:{styleId,artworkSetId:setId,side,scopeKey:{in:["all",colorId]}}});
+ const blank=photos.find(p=>p.colorId===colorId) ?? photos.find(p=>p.colorId===null), shared=placements.find(p=>p.colorId===null), override=placements.find(p=>p.colorId===colorId), artworkId=side==="front" ? association.artworkSet.frontAssetId : association.artworkSet.backAssetId;
+ const stored=(p:typeof shared)=>p ? {version:p.version,values:{x:p.x,y:p.y,width:p.width,rotation:p.rotation}} : null;
+ return {spec:{blankUrl:blank ? assetUrl(blank.assetId) : null,artworkUrl:artworkId ? assetUrl(artworkId) : null,cut:style.cut,color:color.hex,side,placement:resolvePlacement(shared ?? null,override ?? null)},shared:stored(shared),override:stored(override)};
+}
 export function createArtworkService(client: PrismaClient = db) { return {
+ async getPlacementEditor(ctx: RequestContext, style: string, set: string, color: string, side: Side): Promise<PlacementEditorData> { admin(ctx); return withTransaction(tx=>compose(tx,style,set,color,side),client); },
  async createArtworkSet(ctx: RequestContext, seasonId: string, raw: string): Promise<ArtworkSetView> {
   admin(ctx); parseCatalog(idSchema, seasonId); const name = parseCatalog(z.string().trim().min(1).max(60), raw);
   return withTransaction(async tx => {
@@ -53,27 +64,22 @@ export function createArtworkService(client: PrismaClient = db) { return {
    await tx.merchandiseStyle.update({ where: { id: styleId }, data: { version: { increment: 1 } } }); await seasonChanged(tx, style.seasonId);
   }, client);
  },
- async savePlacement(ctx: RequestContext, styleId: string, setId: string, side: Side, colorId: string | null, values: PlacementValues): Promise<void> {
+ async savePlacement(ctx: RequestContext, styleId: string, setId: string, side: Side, colorId: string | null, values: PlacementValues, expectedVersion?: number | null): Promise<void> {
   admin(ctx); parseCatalog(sideSchema, side); parseCatalog(idSchema, setId); const input = parseCatalog(placementSchema, values);
   return withTransaction(async tx => {
    const style = await styleColor(tx, styleId, colorId);
    if (!await tx.styleArtworkSet.findFirst({ where: { styleId, artworkSetId: setId, artworkSet: { seasonId: style.seasonId } } })) throw new AppError("INVALID_SET", 422, "The artwork set is not available for this style.");
    const scopeKey = colorId ?? "all";
+   if (expectedVersion !== undefined) {
+    if (expectedVersion !== null) parseCatalog(versionSchema,expectedVersion);
+    const saved=await tx.placement.findUnique({where:{styleId_artworkSetId_side_scopeKey:{styleId,artworkSetId:setId,side,scopeKey}}});
+    assertVersionWrite((expectedVersion===null ? saved===null : saved?.version===expectedVersion) ? 1 : 0);
+   }
    await tx.placement.upsert({ where: { styleId_artworkSetId_side_scopeKey: { styleId, artworkSetId: setId, side, scopeKey } }, create: { styleId, artworkSetId: setId, side, colorId, scopeKey, ...input }, update: { ...input, version: { increment: 1 } } });
   }, client);
  },
  async getCompositeSpec(styleId: string, setId: string, colorId: string, side: Side): Promise<CompositeSpec> {
-  parseCatalog(sideSchema, side); parseCatalog(idSchema, setId); parseCatalog(idSchema, colorId);
-  return withTransaction(async tx => {
-   const style = await styleColor(tx, styleId, colorId), color = await tx.styleColor.findUniqueOrThrow({ where: { id: colorId } });
-   const association = await tx.styleArtworkSet.findFirst({ where: { styleId, artworkSetId: setId, artworkSet: { seasonId: style.seasonId } }, include: { artworkSet: true } });
-   if (!association) throw new AppError("INVALID_SET", 422, "The artwork set is not available for this style.");
-   const photos = await tx.blankPhoto.findMany({ where: { styleId, side, scopeKey: { in: ["all", colorId] } } });
-   const blank = photos.find(p => p.colorId === colorId) ?? photos.find(p => p.colorId === null);
-   const placements = await tx.placement.findMany({ where: { styleId, artworkSetId: setId, side, scopeKey: { in: ["all", colorId] } } });
-   const artworkId = side === "front" ? association.artworkSet.frontAssetId : association.artworkSet.backAssetId;
-   return { blankUrl: blank ? assetUrl(blank.assetId) : null, artworkUrl: artworkId ? assetUrl(artworkId) : null, cut: style.cut, color: color.hex, side, placement: resolvePlacement(placements.find(p => p.colorId === null) ?? null, placements.find(p => p.colorId === colorId) ?? null) };
-  }, client);
+  return withTransaction(async tx=>(await compose(tx,styleId,setId,colorId,side)).spec,client);
  },
  async deleteArtworkSet(ctx: RequestContext, id: string, version: number, expectedReplacementSetId?: string): Promise<{ replacementSetId: string }> {
   admin(ctx); return withTransaction(async tx => {
