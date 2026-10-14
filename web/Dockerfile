@@ -20,7 +20,7 @@ RUN npm prune --omit=dev --omit=peer
 FROM dependencies AS migration
 COPY --chown=10001:10001 prisma.config.ts ./
 COPY --chown=10001:10001 prisma ./prisma
-COPY --chown=10001:10001 scripts/migrate.mjs ./scripts/migrate.mjs
+COPY --chown=10001:10001 scripts/migrate.mjs scripts/cleanup-assets.mjs ./scripts/
 COPY --from=build --chown=10001:10001 /app/src/generated/prisma ./src/generated/prisma
 USER 10001:10001
 CMD ["node", "scripts/migrate.mjs"]

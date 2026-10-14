@@ -21,7 +21,8 @@
     "pretypecheck": "npm run db:generate && next typegen",
     "pretest": "npm run db:generate",
     "predev": "npm run db:generate",
-    "pretest:e2e": "npm run db:generate"
+    "pretest:e2e": "npm run db:generate",
+    "db:cleanup": "node scripts/cleanup-assets.mjs"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "7.10.0",

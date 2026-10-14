@@ -16,4 +16,4 @@ export type SizeView = { id: Id; label: string; position: number };
 export type StyleView = { id: Id; seasonId: Id; name: string; description: string; unitPriceCents: number; cut: "classic" | "fitted" | "long"; version: number; colors: ColorView[]; sizes: SizeView[]; artworkSetIds: Id[] };
 export type ArtworkSetView = { id: Id; seasonId: Id; name: string; frontAssetId: Id | null; backAssetId: Id | null; version: number };
 export type SeasonView = { id: Id; name: string; opensOn: string; closesOn: string; announcement: string; lifecycle: Lifecycle; version: number };
-export type AssetView = { id: Id; mime: "image/png" | "image/jpeg"; width: number; height: number; byteSize: number };
+export type AssetView = { id: Id; url: string; mime: "image/png" | "image/jpeg"; width: number; height: number; byteSize: number };

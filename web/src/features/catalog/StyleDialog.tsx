@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { BlankPhotos } from "../artwork/BlankPhotos";
 import { Modal } from "../../components/Modal";
 import { parseUsd } from "../../domain/money";
 import type { ArtworkSetView } from "../../domain/types";
@@ -28,7 +29,7 @@ export function StyleDialog({ style, sets, csrfToken, onClose, onUpdated, onDele
     <p className="field-help">Price saves when you leave the field. Existing order prices stay unchanged.</p>
     {sets.length > 1 && <section><h3>Available artwork sets</h3>{sets.map(s => <label className="checkbox-label" key={s.id}><input type="checkbox" checked={style.artworkSetIds.includes(s.id)} onChange={e => void changeSet(s.id, e.target.checked)} />{s.name}</label>)}<p className="field-help">Keep at least one set. Changes save immediately.</p></section>}
     <section><h3>Available colors</h3><ColorRows rows={colors} setRows={setColors} orderedColorIds={style.orderedColorIds} /><button type="button" className="secondary" onClick={() => void saveColors()}>Save colors</button><p className="field-help colors-help">Remove stages a change. Save colors applies it; Done discards unsaved color changes.</p></section>
-    <section className="blank-photo-stage"><h3>Blank shirt photos</h3><p>Front and back blank-photo uploads will be added in Stage 6. Season artwork is managed separately.</p></section>
+    <BlankPhotos style={style} csrfToken={csrfToken} run={run} onSaved={async (next, message) => { await onUpdated(next); setMessage(message); }} />
    </fieldset><ErrorMessage error={error} />{message && <p role="status" className="saved-message">{message}</p>}
    <div className="dialog-actions"><button className="primary" disabled={busy} onClick={onClose}>Done</button><button className="danger delete-season" disabled={busy} onClick={() => { setConfirm(true); setError(null); }}>Delete style</button></div>
   </>}
