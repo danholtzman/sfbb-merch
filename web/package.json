@@ -14,7 +14,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test",
+    "test:e2e": "node tests/run-e2e.mjs",
     "db:generate": "PRISMA_HIDE_UPDATE_MESSAGE=1 DATABASE_URL=file:/tmp/sfbb-generation-unused.sqlite prisma generate",
     "db:migrate": "node scripts/migrate.mjs",
     "prebuild": "npm run db:generate",
