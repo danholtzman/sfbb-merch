@@ -8,7 +8,7 @@ import sharp from 'sharp';
 import {dockerSmokeLock} from '../docker-smoke-lock';
 const enabled=process.env.SFBB_CONTAINER_SMOKE==='1', repo=resolve('..');
 function docker(args:string[],env:NodeJS.ProcessEnv){const r=spawnSync('docker',args,{encoding:'utf8',env,maxBuffer:4*1024*1024});if(r.status!==0)throw new Error(`Docker ${args[0]} failed: ${r.stderr}`);return r.stdout.trim();}
-test.skipIf(!enabled)('ARM64 Compose runtime is read-only/non-root with durable SQLite/assets and loopback health',async()=>{
+test.skipIf(!enabled).each(['incomplete','completed'] as const)('ARM64 runtime and paired recovery after a %s migration',async(migrationState)=>{
  const unlock=await dockerSmokeLock();
  const root=mkdtempSync(join(tmpdir(),'sfbb-runtime-')),project='sfbb-smoke-'+randomUUID().slice(0,8),tag=process.env.SFBB_SMOKE_TAG ?? 'stage11-smoke';
  const hash=(password:string)=>{const salt='1'.repeat(32);return `scrypt:${salt}:${scryptSync(password,Buffer.from(salt,'hex'),64).toString('hex')}`;};
@@ -40,6 +40,20 @@ test.skipIf(!enabled)('ARM64 Compose runtime is read-only/non-root with durable 
    const denied=join(root,'denied-restore');mkdirSync(denied);const failedWrite=spawnSync('docker',['run','--rm','-i','--read-only','--network','none','--user','0:0','--mount',`type=bind,src=${root}/scripts/lib,dst=/ops,readonly`,'--mount',`type=bind,src=${denied},dst=/restore,readonly`,'--entrypoint','python3',`sfbb-merch-migrate:${tag}`,'/ops/backup.py','extract','/restore','10001'],{input:readFileSync(archive),env});expect(failedWrite.status).not.toBe(0);expect(failedWrite.stderr.toString()).toContain('Read-only file system');expect(run('verify-backup.sh',[archive]).status).toBe(0);
    const restored=run('restore.sh',[archive,tag,'--replace-existing']);expect(restored.status,restored.stderr).toBe(0);container=compose('ps','-q','app');expect(docker(['exec',container,'node','-e',`const db=new(require('better-sqlite3'))('/data/sfbb.sqlite');console.log(db.prepare('SELECT value FROM smoke_probe').get().value);db.close()`],env)).toBe('persisted');
    await expect.poll(async()=>{try{return(await fetch(url+`/api/assets/${asset}`,{headers:{Cookie:cookie,Connection:'close'}})).status}catch{return 0;}},{timeout:10000}).toBe(200);expect(readdirSync(join(root,'backups')).filter(n=>n.endsWith('.tar.gz')).length).toBeGreaterThanOrEqual(2);expect(readdirSync(root).some(n=>n.startsWith('.previous-data-'))).toBe(true);
+  }
+  if(process.env.SFBB_BACKUP_SMOKE==='1'){
+   const archive=join(root,'backups',readdirSync(join(root,'backups')).find(n=>n.endsWith('.tar.gz'))!),operations={...env,SFBB_COMPOSE_PROJECT:project};
+   const run=(args:string[])=>spawnSync('bash',[join(root,'scripts/restore.sh'),...args],{env:operations,encoding:'utf8',timeout:120000});
+   compose('stop','app');
+   // This changes the actual deployed SQLite file, unlike an invalid target URL.
+   const sql="import sqlite3;db=sqlite3.connect('/data/sfbb.sqlite');db.execute('ALTER TABLE smoke_probe ADD COLUMN failed_change TEXT');db.execute(\"INSERT INTO _prisma_migrations(id,checksum,migration_name,started_at,finished_at,applied_steps_count) VALUES ('recovery-fixture','fixture','202610150001_candidate',CURRENT_TIMESTAMP,?,1)\",("+(migrationState==='completed'?"'2026-10-15T00:00:00Z'":"None")+",));db.commit();db.close()";
+   compose('run','--rm','--no-deps','-T','--entrypoint','python3','migrate','-c',sql);
+   const ordinary=run([archive,tag,'--replace-existing']);expect(ordinary.status).not.toBe(0);expect(ordinary.stderr).toContain('migration');expect(compose('ps','--status','running','-q','app')).toBe('');
+   const recovered=run([archive,tag,'--replace-existing','--quarantine-unverified-current']);expect(recovered.status,recovered.stderr).toBe(0);
+   container=compose('ps','-q','app');const result=JSON.parse(docker(['exec',container,'node','-e',`const db=new(require('better-sqlite3'))('/data/sfbb.sqlite');console.log(JSON.stringify({value:db.prepare('SELECT value FROM smoke_probe').get().value,columns:db.prepare('PRAGMA table_info(smoke_probe)').all().map(x=>x.name),migrations:db.prepare('SELECT migration_name FROM _prisma_migrations').all().map(x=>x.migration_name)}));db.close()`],env));
+   expect(result.value).toBe('persisted');expect(result.columns).toEqual(['value']);expect(result.migrations).not.toContain('202610150001_candidate');
+   expect((await fetch(url+`/api/assets/${asset}`,{headers:{Cookie:cookie,Connection:'close'}})).status).toBe(200);expect(JSON.parse(readFileSync(join(root,'active-release.json'),'utf8')).releaseTag).toBe(tag);
+   const retained=spawnSync('python3',['-c',"import sqlite3,sys,pathlib;print(any(sqlite3.connect(p.as_uri()+'?mode=ro',uri=True).execute(\"SELECT count(*) FROM _prisma_migrations WHERE migration_name='202610150001_candidate'\").fetchone()[0] for p in pathlib.Path(sys.argv[1]).glob('.previous-data-*/sfbb.sqlite')))",root],{encoding:'utf8'});expect(retained.status,retained.stderr).toBe(0);expect(retained.stdout.trim()).toBe('True');expect(run([archive,tag,'--quarantine-unverified-current']).status).not.toBe(0);
   }
   const inspect=JSON.parse(docker(['inspect',container],env))[0];expect(inspect.HostConfig.PortBindings['3000/tcp'][0].HostIp).toBe('127.0.0.1');expect(readFileSync(join(root,'data/sfbb.sqlite')).length).toBeGreaterThan(0);
  }finally{spawnSync('docker',[...base,'down','--remove-orphans'],{env,encoding:'utf8'});spawnSync('docker',['run','--rm','--read-only','--network','none','--user','0:0','--cap-drop','ALL','--cap-add','DAC_OVERRIDE','--mount',`type=bind,src=${root},dst=/cleanup`,'--entrypoint','python3',`sfbb-merch-migrate:${tag}`,'-c',"import pathlib,shutil;p=pathlib.Path('/cleanup');[(shutil.rmtree(c) if c.is_dir() and not c.is_symlink() else c.unlink()) for c in p.iterdir()]"],{env,encoding:'utf8'});rmSync(root,{recursive:true,force:true});unlock();}

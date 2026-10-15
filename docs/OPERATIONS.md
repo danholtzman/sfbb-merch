@@ -29,10 +29,16 @@ The actual Pi's OS version, SSH destination, existing Caddyfile/tunnel paths and
 Before approving the live release, run an **isolated** rehearsal on the Pi. Supply the verified release archive/checksum/manifest and matching checkout/scripts manually. Use a unique Compose project and disposable data/env; never restore over real member orders. You need Node 24/npm 11.19.0 for the test checkout, Python 3 and Docker/Compose as documented.
 
 ```sh
-# In the matching source checkout on the Pi; images have been loaded and verified.
+# In the matching source checkout on the Pi; replace the two example values.
 # Keep port 3000 free for this test; do not stop an unrelated application.
-export SFBB_SMOKE_TAG=<verified-release-tag>
-export SFBB_SMOKE_MANIFEST=/absolute/path/to/sfbb-merch-<tag>.tar.manifest.json
+export SFBB_SMOKE_TAG='replace-with-verified-commit-tag'
+export SFBB_RELEASE_ARCHIVE='/absolute/path/to/sfbb-merch-TAG.tar'
+export SFBB_SMOKE_MANIFEST="$SFBB_RELEASE_ARCHIVE.manifest.json"
+python3 scripts/lib/release.py verify "$SFBB_RELEASE_ARCHIVE" "$SFBB_SMOKE_TAG"
+docker load --input "$SFBB_RELEASE_ARCHIVE"
+python3 scripts/lib/release.py images "$SFBB_SMOKE_MANIFEST"
+# Install the pinned checkout dependencies on the Pi with Node 24/npm 11.19.0.
+npm --prefix web ci
 SFBB_CONTAINER_SMOKE=1 SFBB_BACKUP_SMOKE=1 SFBB_FIRST_INSTALL_SMOKE=1 \
   npm --prefix web test -- tests/integration/container-smoke.test.ts tests/integration/first-install.test.ts
 ```
@@ -53,7 +59,7 @@ Record who ran the checks, date, source commit/image IDs, Pi architecture/OS, an
 
 ## Updates and recovery
 
-Commit approved source, run the Mac release builder, retain the archive/sidecars, and transfer matching deployment/scripts manually. Deploy takes a verified stopped-app backup before migration and waits for health. Keep previous images, matching backups and release manifests. If migration fails, leave the app stopped and restore the paired backup with its exact compatible release; never start an older image against a changed database.
+Commit approved source, run the Mac release builder, retain the archive/sidecars, and transfer matching deployment/scripts manually. Deploy takes a verified stopped-app backup before migration and waits for health. Keep previous images, matching backups and release manifests. If migration fails, leave the app stopped and restore the paired backup with its exact compatible release. If current data cannot pass backup validation, explicitly use the documented quarantine recovery flag to retain that failed state; never start an older image against a changed database.
 
 Check free space/logs and take backups before changes. Runtime logs rotate, but uploads/backups/previous data require deliberate operator retention/cleanup. `npm run db:cleanup` is dry-run by default; applying orphan cleanup requires stopping the app and explicit flags, as documented in ARTWORK.md. It is not a backup substitute. Never prune the only verified release/data recovery set.
 

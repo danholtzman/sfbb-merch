@@ -21,11 +21,11 @@ This branch implements the approved spec and mockups. Local checks do not establ
 | 14: prototype boundaries | Real persistence/auth/server validation; supplied official logo remains an owner input |
 | 15: acceptance | Local suites and container rehearsals below; actual Pi/domain checklist remains pending |
 
-Backup rehearsals cover verified SQLite/assets pairing (including retained WAL), truncation, missing assets, unsafe paths, schema mismatch, denied restoration writes, refusal to overwrite without an explicit flag, retained pre-restore backup and old data, cold installation and actual migration failure with the app left stopped. The stopped app container is removed before a restore swaps directory paths, preventing a retained Docker bind mount from serving previous data.
+Backup rehearsals cover verified SQLite/assets pairing (including retained WAL), truncation, missing assets, unsafe paths, schema mismatch, denied restoration writes, refusal to overwrite without an explicit flag, retained pre-restore backup and old data, cold installation, actual migration failure with the app left stopped, and explicit recovery after real schema changes with incomplete/completed migration records. The stopped app container is removed before a restore swaps directory paths, preventing a retained Docker bind mount from serving previous data.
 
 ## Verified local run
 
-On 2026-10-14, Node 24.11.1 checks passed: strict typecheck, ESLint, production Next.js build, **166 backend/integration tests in 25 files** (both actual ARM64 container suites enabled), and **50 browser tests** with 20 intentional viewport-specific skips. Desktop/390px/320px shop and lookup screenshots were inspected. The final independent review and release image identity are recorded separately when completed.
+On 2026-10-14, Node 24.11.1 checks passed: strict typecheck, ESLint, production Next.js build, **167 backend/integration tests in 25 files** after the review fix (both actual ARM64 container suites enabled), and **50 browser tests** with 20 intentional viewport-specific skips. Desktop/390px/320px shop and lookup screenshots were inspected. The post-review full suite passed with both actual ARM64 container suites enabled. Types and lint also passed after the fix; browser/UI source was unchanged by that operational fix. The final independent review is recorded in [FINAL-REVIEW.md](FINAL-REVIEW.md); its recovery fix adds explicit quarantine recovery and regressions for partially applied and completed migrations.
 
 ## Manual Pi gate
 
