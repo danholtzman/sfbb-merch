@@ -45,6 +45,8 @@ SFBB_CONTAINER_SMOKE=1 SFBB_BACKUP_SMOKE=1 SFBB_FIRST_INSTALL_SMOKE=1 \
 
 This test creates a unique project/private temporary root, migrates, checks architecture/UID/root/storage, uploads an authenticated PNG, checks restart, then performs a verified backup and explicit restore of its own data. It checks incorrect release/overwrite, read-only staging failure, cold image loading and actual Prisma migration failure with the app left stopped. It removes its test containers/data afterwards. Capture the result; a local Mac Docker result does not substitute for the Pi/microSD rehearsal.
 
+The verification suite now expects **4 passing tests**, including a Linux UID-permission regression. Retained databases are inspected through a read-only, network-disabled maintenance container because their mode-700 directories belong to UID 10001. Do not change storage ownership or run the entire suite as root to work around a host-side read failure. The test-only correction does not require rebuilding the `872cf8bd454a` application images.
+
 After separate approval of the concrete release and Caddy/tunnel integration, deploy following DEPLOYMENT.md. Use an isolated setup season to check through `https://sfbb.holtzman.io`:
 
 - Both shared logins work; no signup or payment fields appear. Production cookies are Secure/HttpOnly/SameSite and mutations use the exact public origin.

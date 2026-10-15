@@ -34,3 +34,9 @@ Use the exact disposable rehearsal commands in [OPERATIONS.md](OPERATIONS.md), u
 After the disposable checks pass, follow [DEPLOYMENT.md](DEPLOYMENT.md) and [BACKUP-RESTORE.md](BACKUP-RESTORE.md). Preserve the existing Pi OS Caddy/tunnel configuration and inspect its paths and trusted-header behavior before making changes. Configure private shared credentials, copy backups off the microSD card, supply the official logo, set up the first real season and obtain live-deployment authorization. Then run the HTTPS domain acceptance checklist in OPERATIONS.md using desktop and mobile clients.
 
 No Pi SSH destination or existing Caddy/tunnel paths were supplied. This document does not assert those environment-specific checks passed.
+
+## Pi verification follow-up — 2026-10-15
+
+The first Pi run passed cold installation but failed both recovery tests at their final host-side inspection of retained UID-10001 data. Linux correctly denied that operator read; Docker Desktop had masked the test assumption. The test now inspects retained databases with a confined read-only maintenance container and checks current database size inside the app container. Storage permissions and production scripts/images are unchanged.
+
+A permanent regression creates UID-10001 mode-700 data inside Linux, proves a UID-1000 read fails, and verifies the confined inspection succeeds. Local verification passed all 4 container checks against the existing `872cf8bd454a` release, 164 backend tests (4 optional Docker checks skipped in that separate run), strict types and lint. The corrected suite must still be rerun on the actual Pi; its result is not asserted here.
