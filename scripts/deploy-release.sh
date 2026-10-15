@@ -7,8 +7,7 @@ source "$sfbb_scripts/lib/runtime.sh"
 sfbb_tag "$2"
 sfbb_need python3; sfbb_need docker
 [[ $(uname -m) == aarch64 || $(uname -m) == arm64 ]] || sfbb_die 'Deployment requires a 64-bit ARM host.'
-export SFBB_ROOT=${SFBB_ROOT:-/srv/sfbb-merch}
-[[ "$SFBB_ROOT" == /* ]] || sfbb_die 'SFBB_ROOT must be absolute.'
+sfbb_init
 export SFBB_RELEASE_TAG=$2
 sfbb_manifest="$1.manifest.json"
 python3 "$sfbb_scripts/lib/release.py" verify "$1" "$2"
@@ -21,10 +20,20 @@ mkdir "$sfbb_lock" 2>/dev/null || sfbb_die 'Another operation is running; inspec
 trap 'rmdir "$sfbb_lock"' EXIT
 # Stop before taking the backup so no write can slip between backup and migration.
 # Stage 12 backup detects an already stopped app and leaves it stopped.
+sfbb_preloaded=0
+if [[ ! -f "$SFBB_ROOT/active-release.json" ]]; then
+  # First install has no maintenance image for the empty-data backup yet.
+  # Loading an image does not open an app listener or change SQLite.
+  docker load --input "$1"
+  python3 "$sfbb_scripts/lib/release.py" images "$sfbb_manifest"
+  sfbb_preloaded=1
+fi
 sfbb_compose stop app
 SFBB_OPERATION_LOCK_HELD=1 "$SFBB_ROOT/scripts/backup.sh" "$SFBB_ROOT/backups"
-docker load --input "$1"
-python3 "$sfbb_scripts/lib/release.py" images "$sfbb_manifest"
+if [[ "$sfbb_preloaded" == 0 ]]; then
+  docker load --input "$1"
+  python3 "$sfbb_scripts/lib/release.py" images "$sfbb_manifest"
+fi
 if ! sfbb_compose run --rm --no-deps migrate; then
   sfbb_die 'Migration failed; app remains stopped. Retain the backup and previous release. Follow BACKUP-RESTORE.md; never start an older image against the changed database.'
 fi

@@ -1,6 +1,6 @@
 # SFBB production application
 
-Stages 1–11 provide the framework, shared-account authentication, seasons, shirt styles/colors, paired artwork/uploads, order services, responsive member shopping/lookup, admin order management/CSV exports, and side-aware artwork placement editing. The root HTML mockups remain the design reference. Manual release packaging is documented in [DEPLOYMENT.md](../docs/DEPLOYMENT.md). Backup/restore and final release acceptance remain Stage 12; this is not a production release. Member UI behavior is documented in [MEMBER-ORDERING.md](../docs/MEMBER-ORDERING.md).
+Stages 1–12 (local implementation) provide the framework, shared-account authentication, seasons, shirt styles/colors, paired artwork/uploads, order services, responsive member shopping/lookup, admin order management/CSV exports, and side-aware artwork placement editing. The root HTML mockups remain the design reference. Manual release packaging is documented in [DEPLOYMENT.md](../docs/DEPLOYMENT.md). Manual backup/restore and local release acceptance are documented in [OPERATIONS.md](../docs/OPERATIONS.md) and [BACKUP-RESTORE.md](../docs/BACKUP-RESTORE.md). Actual Pi/domain acceptance and publication remain operator gates; this is not a deployed production release. Member UI behavior is documented in [MEMBER-ORDERING.md](../docs/MEMBER-ORDERING.md).
 
 Use Node 24, npm 11.19.0, and the committed npm lockfile (the container supplies both runtime tools):
 

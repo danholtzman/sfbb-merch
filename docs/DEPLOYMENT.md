@@ -2,7 +2,7 @@
 
 Stage 11 packages releases for the Raspberry Pi 5 (8 GB, 64-bit OS, microSD). Caddy and Cloudflare Tunnel keep running on the Pi's OS. The app is one Linux ARM64 Node 24 container, SQLite and uploaded images live together in `/srv/sfbb-merch/data`, and source lives on GitHub. Builds and transfers are manual; no registry, CI, paid service, or scheduled deployment is required. Nothing in this stage has changed the Pi, Caddy, tunnel, or live domain.
 
-**Do not deploy this checkpoint yet.** Stage 12 must deliver and verify backup/restore first. `deploy-release.sh` deliberately refuses without the backup script. Deployment requires approval of the concrete release and existing Caddy/tunnel configuration. The tests in this stage use only temporary local data and containers.
+Backup/restore scripts are documented in [BACKUP-RESTORE.md](BACKUP-RESTORE.md), and the release gate is in [OPERATIONS.md](OPERATIONS.md). Do not deploy until the concrete release and existing Caddy/tunnel configuration are approved. `deploy-release.sh` refuses without the backup script. The tests in this stage use only temporary local data and containers.
 
 ## Operator prerequisites
 
@@ -27,7 +27,7 @@ Generate two independent credential hashes with `web/scripts/hash-password.mjs` 
 
 ## Build on the Mac
 
-Commit the approved source first. `scripts/build-release.sh <release-tag>` accepts only a 7–40 character lowercase Git commit prefix matching HEAD and refuses dirty source or an existing output directory. No source, credentials, databases, or Mac native modules are copied into the archive. The image contains the application, so protect release files accordingly even though secrets are not included.
+Commit the approved source first. `scripts/build-release.sh <release-tag>` accepts only a 7–40 character lowercase Git commit prefix matching HEAD and refuses dirty source or an existing output directory. No working checkout, credentials, databases, or Mac native modules are copied into the archive. The image contains the application, so protect release files accordingly even though secrets are not included.
 
 ```sh
 release_tag=$(git rev-parse --short=12 HEAD)
@@ -44,7 +44,7 @@ scp releases/"$release_tag"/sfbb-merch-"$release_tag".tar* "$PI_SSH_DEST:/srv/sf
 scp -r deploy scripts "$PI_SSH_DEST:/srv/sfbb-merch/"
 ```
 
-Transfer deployment/scripts from the exact same commit as the images. Do not copy the Mac's secrets, SQLite database, or `node_modules`. Copying future Stage 12 scripts is required before first deployment.
+Transfer deployment/scripts from the exact same commit as the images. Do not copy the Mac's secrets, SQLite database, or `node_modules`. Copy all scripts, including backup/restore helpers, before first deployment.
 
 ## Deploy on the Pi, after Stage 12 and approval
 
@@ -53,9 +53,9 @@ Transfer deployment/scripts from the exact same commit as the images. Do not cop
   /srv/sfbb-merch/releases/sfbb-merch-<tag>.tar <tag>
 ```
 
-`SFBB_ROOT` can point to a different absolute private root for isolated rehearsals. Its layout and Compose file are otherwise identical. Neither scripts nor Compose contains SSH destinations or production passwords.
+`SFBB_ROOT` can point to a different absolute private root for isolated rehearsals, but you must also set a distinct `SFBB_COMPOSE_PROJECT` so tests cannot stop another deployment. Its layout and Compose file are otherwise identical. Neither scripts nor Compose contains SSH destinations or production passwords.
 
-The script validates tag, manifest, archive checksum, private env permissions, prepared data directory and backup availability before stopping anything. It holds `.operation-lock` to prevent concurrent deployment/backup/restore. It stops the existing app, invokes the verified Stage 12 backup with the app already stopped (so no writes happen after the backup), loads the archive, validates both loaded image identities/commit/platform, runs the matching one-shot migration, starts the app and waits up to 90 seconds for Docker health. The migration service has no port/listener and is explicitly invoked with `run --rm --no-deps migrate`. Only a healthy startup promotes `active-release.json` atomically. Old archives/images/backups are never pruned automatically.
+The script validates tag, manifest, archive checksum, private env permissions, prepared data directory and backup availability before stopping anything. It holds `.operation-lock` to prevent concurrent deployment/backup/restore. On first installation, it first loads/verifies the candidate image pair so the maintenance image can capture an empty-data marker; loading images changes neither data nor listeners. For upgrades it uses the existing active maintenance image for backup before loading the candidate. It stops the existing app, invokes the verified Stage 12 backup with the app already stopped (so no writes happen after the backup), loads the archive, validates both loaded image identities/commit/platform, runs the matching one-shot migration, starts the app and waits up to 90 seconds for Docker health. The migration service has no port/listener and is explicitly invoked with `run --rm --no-deps migrate`. Only a healthy startup promotes `active-release.json` atomically. Old archives/images/backups are never pruned automatically.
 
 Task 12 backup must use the existing active release's manifest, recognize an already stopped app and leave it stopped, and honor `SFBB_OPERATION_LOCK_HELD=1` when called by this locked deployment. First-install backup handles an empty data directory without inventing an existing release/database. The deployment script does not invoke a live release in Stage 11.
 

@@ -16,3 +16,5 @@ web/src/generated/
 web/*.tsbuildinfo
 
 releases/
+
+__pycache__/

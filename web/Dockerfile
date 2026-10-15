@@ -33,6 +33,7 @@ FROM base AS runtime
 ENV NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0
 COPY --from=build --chown=10001:10001 /app/.next/standalone ./
 COPY --from=build --chown=10001:10001 /app/.next/static ./.next/static
+COPY --from=build --chown=10001:10001 /app/public ./public
 # Native modules are rebuilt for Linux; migration CLI stays in the separate migration target.
 COPY --from=production-dependencies --chown=10001:10001 /app/node_modules ./node_modules
 COPY --from=build --chown=10001:10001 /app/src/generated/prisma ./src/generated/prisma

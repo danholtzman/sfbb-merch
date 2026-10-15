@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process";
 // acceptance in a fresh disposable database rather than weaken deletion guards
 // or make earlier season tests depend on file execution order.
 const args = process.argv.slice(2);
-const passes = args.length ? [args] : [["--grep-invert", "@orders-api|@member-ui|@admin-orders|@placement"], ["--grep", "@orders-api"], ["--grep", "@member-ui"], ["--grep", "@admin-orders"], ["--grep", "@placement"]];
+const passes = args.length ? [args] : [["--grep-invert", "@orders-api|@member-ui|@admin-orders|@placement|@release"], ["--grep", "@orders-api"], ["--grep", "@member-ui"], ["--grep", "@admin-orders"], ["--grep", "@placement"], ["--grep", "@release"]];
 for (const pass of passes) {
  const result = spawnSync(process.execPath, ["node_modules/@playwright/test/cli.js", "test", ...pass], { stdio: "inherit" });
  if (result.status !== 0) process.exit(result.status ?? 1);
