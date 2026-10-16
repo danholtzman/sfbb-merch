@@ -1,4 +1,4 @@
-import { beforeEach, afterEach, expect, it } from "vitest";
+import { beforeEach, afterEach, expect, it, vi } from "vitest";
 import { randomUUID } from "node:crypto";
 import { testDatabase, seedCatalog, lineData } from "../fixtures/database";
 import { createMemberData } from "../../src/features/orders/member-data";
@@ -6,7 +6,18 @@ import { createOrderService } from "../../src/features/orders/service";
 import type { RequestContext } from "../../src/domain/types";
 let database: Awaited<ReturnType<typeof testDatabase>>, ctx: RequestContext, data: ReturnType<typeof createMemberData>, catalog: Awaited<ReturnType<typeof seedCatalog>>;
 beforeEach(async () => { database = await testDatabase(); catalog = await seedCatalog(database.client); ctx = { actor: { role: "member", sessionId: randomUUID() }, now: new Date("2026-10-14T12:00:00Z") }; data = createMemberData(database.client); });
-afterEach(async () => database.close());
+afterEach(async () => { vi.unstubAllEnvs(); await database.close(); });
+it("offers email only when explicitly enabled and fully configured, exposing no credentials", async () => {
+ vi.stubEnv("ORDER_CONFIRMATION_EMAILS_ENABLED", "false");
+ expect((await data.shop(ctx)).confirmationEmailsEnabled).toBe(false);
+ vi.stubEnv("ORDER_CONFIRMATION_EMAILS_ENABLED", "true");
+ vi.stubEnv("RESEND_API_KEY", "re_private_key"); vi.stubEnv("RESEND_FROM_EMAIL", "orders@example.com");
+ const shop = await data.shop(ctx);
+ expect(shop.confirmationEmailsEnabled).toBe(true);
+ expect(JSON.stringify(shop)).not.toContain("re_private_key");
+ vi.stubEnv("RESEND_FROM_EMAIL", "invalid");
+ expect((await data.shop(ctx)).confirmationEmailsEnabled).toBe(false);
+});
 it("hides drafts from members, selects open published collection, and gates admin preview even when open", async () => {
  expect((await data.shop(ctx)).season).toBeNull();
  await expect(data.shop(ctx, catalog.season.id)).rejects.toMatchObject({ status: 403 });

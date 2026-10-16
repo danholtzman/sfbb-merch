@@ -58,3 +58,7 @@ Stage 9 uses these admin-only APIs and current versions for its editor, progress
 Real SQLite tests cover merged quantities, integer totals, strict contact/variant input, server pricing, normalized idempotency, collision retries, exact DST boundaries, fresh transaction clock, preview/closed creation, historical edits, stale concurrent writes, cancellation/restoration/progress, failed-code throttling (including mutations), and revoked sessions. Cart/code tests cover immutable merges, snapshot-sensitive identity, bounded quantities/totals, and the code alphabet.
 
 Order HTTP acceptance runs against real uploaded paired PNGs and a published disposable season in both browser projects. It verifies CSRF, preview refusal, concurrent replay, changed-payload conflict, member edits, stale writes, admin-only search, corrections, and restoration. The default browser runner uses separate fresh-server passes for UI regression and the @orders-api tests; historical test orders cannot be erased through production APIs, so this isolation preserves both order-deletion safeguards and the earlier last-season scenario. Explicit file arguments still run directly. No production records are used by tests.
+
+## Optional email extension
+
+The later optional Resend extension is described in [ORDER-CONFIRMATION-EMAILS.md](ORDER-CONFIRMATION-EMAILS.md). It adds an optional new-order email request after commit; checkout and the order-code lookup remain independent of email delivery. The original stage descriptions above record the initial implementation scope.

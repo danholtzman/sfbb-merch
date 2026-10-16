@@ -1,6 +1,29 @@
 import { test, expect } from "@playwright/test";
 import { memberFixture, memberLogin, addShirt } from "./member-setup";
 test.describe("member ordering", { tag: "@member-ui" }, () => {
+ test("optional email submits with checkout while the disabled service still completes the order", async ({ page, request }) => {
+  await memberFixture(request); await memberLogin(page); await addShirt(page);
+  // Exercise the enabled form without sending external mail from the test server.
+  await page.route("**/api/member/catalog", async route => {
+   const response = await route.fetch(), body = await response.json();
+   await route.fulfill({ response, json: { ...body, data: { ...body.data, confirmationEmailsEnabled: true } } });
+  });
+  await page.getByRole("button", { name: /Bag 1/ }).click(); await page.getByRole("button", { name: "Continue to checkout" }).click();
+  await page.getByLabel("Full name", { exact: true }).fill("Email Member");
+  await page.getByLabel("Confirmation email (optional)", { exact: true }).fill("member@example.com");
+  let lost = false;
+  await page.route("**/api/orders", async route => {
+   if (route.request().method() === "POST" && !lost) { lost = true; await route.fetch(); await route.abort("failed"); }
+   else await route.continue();
+  });
+  const submitted = page.waitForRequest(req => req.url().endsWith("/api/orders") && req.method() === "POST");
+  await page.getByRole("button", { name: "Place order" }).click();
+  expect((await submitted).postDataJSON().confirmationEmail).toBe("member@example.com");
+  await expect(page.getByRole("dialog").getByRole("alert")).toContainText("try again");
+  expect(await page.evaluate(() => sessionStorage.getItem("sfbb:cart"))).not.toContain("member@example.com");
+  await page.getByRole("button", { name: "Place order" }).click();
+  await expect(page.getByTestId("order-code")).toBeVisible();
+ });
  test("single-set checkout, copy, lookup, edit, cancel and restore preserve one order", async ({ page, request }, info) => {
   const fixture = await memberFixture(request); await memberLogin(page);
   const card = page.getByRole("article").first(); await expect(card.getByRole("combobox", { name: "Artwork set" })).toHaveCount(0);

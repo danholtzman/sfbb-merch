@@ -3,7 +3,7 @@ import { idSchema, orderLineSchema, adminOrderLineSchema } from "../../domain/sc
 import { AppError } from "../../domain/errors";
 export const memberLineSchema = orderLineSchema.extend({ originalLineId: idSchema.optional() });
 export const contactSchema = z.strictObject({ fullName: z.string().trim().min(1).max(100), note: z.string().trim().max(2000).optional().default("") });
-export const submitSchema = contactSchema.extend({ seasonId: idSchema, lines: z.array(orderLineSchema).min(1).max(100) });
+export const submitSchema = contactSchema.extend({ seasonId: idSchema, lines: z.array(orderLineSchema).min(1).max(100), confirmationEmail: z.string().trim().max(254).pipe(z.union([z.email(), z.literal("")])).optional() });
 export const memberEditSchema = contactSchema.extend({ lines: z.array(memberLineSchema).min(1).max(100) });
 export const adminEditSchema = contactSchema.extend({ lines: z.array(adminOrderLineSchema).min(1).max(100) });
 export const idempotencySchema = z.string().min(1).max(128).regex(/^[A-Za-z0-9_:-]+$/);

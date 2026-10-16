@@ -1,4 +1,4 @@
-import { beforeEach, afterEach, expect, it } from "vitest";
+import { beforeEach, afterEach, expect, it, vi } from "vitest";
 import { randomUUID } from "node:crypto";
 import { testDatabase, seedCatalog } from "../fixtures/database";
 import { createOrderService } from "../../src/features/orders/service";
@@ -13,7 +13,7 @@ beforeEach(async () => {
  const session = async (role: "member" | "admin") => ({ actor: { role, sessionId: (await database.client.session.create({ data: { tokenHash: randomUUID(), csrfTokenHash: "a".repeat(64), role, expiresAt: new Date("2030-01-01") } })).id }, now });
  member = await session("member"); admin = await session("admin"); service = createOrderService(database.client);
 });
-afterEach(async () => { await database.close(); });
+afterEach(async () => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); vi.restoreAllMocks(); await database.close(); });
 const line = () => ({ styleId: catalog.style.id, artworkSetId: catalog.artwork.id, colorId: catalog.color.id, sizeId: catalog.size.id, quantity: 2 });
 const input = () => ({ seasonId: catalog.season.id, fullName: "  Alex Morgan  ", note: " Rehearsal pickup ", lines: [line()] });
 const submit = () => service.submitOrder(member, input(), randomUUID());
@@ -125,4 +125,63 @@ it("checkout catalog version rejects a price race before creating an order, but 
  const order = await service.submitOrder({ ...member, expectedCatalogVersion: 1 }, payload, key);
  await database.client.season.update({ where: { id: catalog.season.id }, data: { version: { increment: 1 } } });
  expect((await service.submitOrder({ ...member, expectedCatalogVersion: 1 }, payload, key)).id).toBe(order.id);
+});
+
+function enableEmail() {
+ vi.stubEnv("ORDER_CONFIRMATION_EMAILS_ENABLED", "true");
+ vi.stubEnv("RESEND_API_KEY", "re_test_key");
+ vi.stubEnv("RESEND_FROM_EMAIL", "SFBB Merch <orders@example.com>");
+}
+it("sends the committed order once across concurrent checkout retries without exposing the recipient", async () => {
+ enableEmail();
+ const requests: Array<{ url: string; init: RequestInit }> = [];
+ vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
+  expect(await database.client.order.count()).toBe(1);
+  expect(await database.client.idempotencyRecord.count()).toBe(1);
+  requests.push({ url, init }); return Response.json({ id: "email-123" });
+ });
+ const payload = { ...input(), confirmationEmail: " member@example.com " }, key = randomUUID();
+ const [first, retry] = await Promise.all([service.submitOrder(member, payload, key), service.submitOrder(member, payload, key)]);
+ expect(first).toEqual(retry); expect(requests).toHaveLength(1);
+ expect(requests[0].url).toBe("https://api.resend.com/emails");
+ expect(requests[0].init.headers).toMatchObject({ Authorization: "Bearer re_test_key", "Idempotency-Key": `order-confirmation/${first.id}` });
+ const message = JSON.parse(requests[0].init.body as string);
+ expect(message).toMatchObject({ from: "SFBB Merch <orders@example.com>", to: ["member@example.com"] });
+ expect(message.text).toContain(first.code); expect(message.text).toContain("$50.20");
+ expect(message.text).toContain("Classic Tee"); expect(message.text).toContain("Test season");
+ expect(message.text).toContain("No payment was collected");
+ expect(JSON.stringify(await service.lookupOrder(member, first.code))).not.toContain("member@example.com");
+ expect((await database.client.idempotencyRecord.findFirstOrThrow()).responseJson).not.toContain("member@example.com");
+ await expect(service.submitOrder(member, { ...payload, confirmationEmail: "other@example.com" }, key)).rejects.toMatchObject({ code: "IDEMPOTENCY_CONFLICT" });
+});
+it.each(["disabled", "missing-key", "missing-sender", "invalid-sender", "no-recipient"])("completes checkout without a network request when email is %s", async mode => {
+ enableEmail();
+ if (mode === "disabled") vi.stubEnv("ORDER_CONFIRMATION_EMAILS_ENABLED", "false");
+ if (mode === "missing-key") vi.stubEnv("RESEND_API_KEY", "");
+ if (mode === "missing-sender") vi.stubEnv("RESEND_FROM_EMAIL", "");
+ if (mode === "invalid-sender") vi.stubEnv("RESEND_FROM_EMAIL", "invalid\r\nBcc: victim@example.com");
+ const network = vi.fn(() => { throw new Error("Unexpected network request"); }); vi.stubGlobal("fetch", network);
+ const order = await service.submitOrder(member, { ...input(), ...(mode === "no-recipient" ? {} : { confirmationEmail: "member@example.com" }) }, randomUUID());
+ expect(order.code).toHaveLength(6); expect(network).not.toHaveBeenCalled();
+});
+it.each(["http", "network", "timeout"])("preserves order completion and retry replay after an email %s failure", async mode => {
+ enableEmail(); vi.spyOn(console, "warn").mockImplementation(() => {});
+ vi.stubGlobal("fetch", async (_url: string, init: RequestInit) => {
+  if (mode === "http") return Response.json({ message: "Rejected" }, { status: 429 });
+  if (mode === "timeout") return new Promise((_resolve, reject) => init.signal!.addEventListener("abort", () => reject(init.signal!.reason), { once: true }));
+  throw new Error("network error with private details");
+ });
+ const payload = { ...input(), confirmationEmail: "member@example.com" }, key = randomUUID();
+ const order = await service.submitOrder(member, payload, key);
+ expect((await service.submitOrder(member, payload, key)).id).toBe(order.id);
+ expect(await database.client.order.count()).toBe(1);
+ expect((await service.lookupOrder(member, order.code)).amountOwedCents).toBe(5020);
+}, 5000);
+it("rejects malformed recipients before creating an order and accepts blank email as no opt-in", async () => {
+ for (const confirmationEmail of ["bad", "a@example.com,b@example.com", "a@example.com\r\nBcc: b@example.com", "a".repeat(255)+"@example.com"]) {
+  await expect(service.submitOrder(member, { ...input(), confirmationEmail }, randomUUID())).rejects.toMatchObject({ code: "INVALID_INPUT" });
+ }
+ expect(await database.client.order.count()).toBe(0);
+ const key = randomUUID(), order = await service.submitOrder(member, input(), key);
+ expect((await service.submitOrder(member, { ...input(), confirmationEmail: " " }, key)).id).toBe(order.id);
 });

@@ -32,3 +32,5 @@ Shared credentials, cookie/CSRF contracts, proxy trust, and development login se
 Admin order workflows and exact download contracts are documented in [ADMIN-ORDERS-REPORTS.md](../docs/ADMIN-ORDERS-REPORTS.md).
 
 Artwork placement controls, geometry, save scopes, and preview refresh are documented in [PLACEMENT-EDITOR.md](../docs/PLACEMENT-EDITOR.md).
+
+Optional Resend confirmation emails are documented in [ORDER-CONFIRMATION-EMAILS.md](../docs/ORDER-CONFIRMATION-EMAILS.md), including server environment variables, sender verification, privacy, and failure handling. They are disabled by default and never required to complete an order.

@@ -31,3 +31,7 @@ Only Open progress during the published season's inclusive ordering window enabl
 The member Playwright pass uses an independently migrated disposable database and test-only uploads/credentials. It is separate from admin season-deletion regression tests and order API acceptance: historical orders cannot be purged through public APIs merely to clean up a test. The normal runner executes all three passes. Screenshots are captured for desktop confirmation and 390px/320px mobile shop, bag and confirmation; generated screenshot artifacts stay untracked.
 
 Stage 9 can reuse OrderSummary and the native Modal, but its administrator editor must retain the separate admin mutation/price-override contracts and server role guards. Stage 10 adds saved placement controls while continuing to use the shared compositor. No deployment, real member order, credential change or Pi/tunnel configuration is performed by these tests.
+
+## Optional confirmation email extension
+
+When the operator enables and configures [Resend confirmations](ORDER-CONFIRMATION-EMAILS.md), new-order checkout offers a confirmation email field. Leaving it blank keeps the original flow. Email delivery is best effort; always save the order code shown on screen. This later extension supersedes the initial no-email-field description above when enabled.

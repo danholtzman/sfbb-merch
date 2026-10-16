@@ -7,6 +7,7 @@ import { idSchema, versionSchema, progressSchema, centsSchema } from "../../doma
 import { isRateLimited, recordFailure } from "../../server/rate-limit";
 import { isOrderingOpen } from "../seasons/clock";
 import { generateOrderCode, normalizeCode } from "./code";
+import { sendOrderConfirmation } from "../../server/order-email";
 import { mergeCartLines, cartTotal, variantKey } from "./cart";
 import { submitSchema, memberEditSchema, adminEditSchema, idempotencySchema, parseOrder, type SubmitOrderInput, type MemberEditInput, type AdminEditInput } from "./validation";
 const include = { lines: { orderBy: { position: "asc" } }, season: true } as const;
@@ -93,13 +94,13 @@ export function createOrderService(client: PrismaClient = db, options: { generat
   async submitOrder(ctx: OrderContext, raw: unknown, idempotencyKey: string): Promise<OrderView> {
    const input = parseOrder(submitSchema, raw), key = parseOrder(idempotencySchema, idempotencyKey);
    const lines = mergeCartLines(input.lines);
-   const canonical = { seasonId: input.seasonId, fullName: input.fullName, note: input.note, lines: [...lines].sort((a,b) => variantKey(a).localeCompare(variantKey(b))) };
+   const canonical = { seasonId: input.seasonId, fullName: input.fullName, note: input.note, lines: [...lines].sort((a,b) => variantKey(a).localeCompare(variantKey(b))), ...(input.confirmationEmail ? { confirmationEmail: input.confirmationEmail } : {}) };
    const requestHash = createHash("sha256").update(JSON.stringify(canonical)).digest("hex");
-   return withTransaction(async tx => {
+   const outcome = await withTransaction(async tx => {
     const now = clock(ctx), live = await session(tx, ctx, now);
     if (ctx.preview) throw new AppError("PREVIEW_ONLY", 403, "Preview only — checkout unavailable.");
     const previous = await tx.idempotencyRecord.findUnique({ where: { sessionId_key: { sessionId: live.id, key } } });
-    if (previous) { if (previous.requestHash !== requestHash) throw new AppError("IDEMPOTENCY_CONFLICT", 409, "This checkout key was already used with a different order."); return JSON.parse(previous.responseJson) as OrderView; }
+    if (previous) { if (previous.requestHash !== requestHash) throw new AppError("IDEMPOTENCY_CONFLICT", 409, "This checkout key was already used with a different order."); return { order: JSON.parse(previous.responseJson) as OrderView, season: null }; }
     const season = await tx.season.findUnique({ where: { id: input.seasonId } });
     if (!season || !isOrderingOpen(season, now)) throw new AppError("ORDERING_CLOSED", 409, "This season is not accepting orders.");
     if (ctx.expectedCatalogVersion !== undefined && season.version !== ctx.expectedCatalogVersion) throw new AppError("CATALOG_CHANGED", 409, "The collection changed. Review your bag before ordering.");
@@ -109,8 +110,10 @@ export function createOrderService(client: PrismaClient = db, options: { generat
     if (!code) throw new AppError("CODE_UNAVAILABLE", 503, "Unable to assign an order code. Please try again.");
     const order = await tx.order.create({ data: { seasonId: season.id, code, fullName: input.fullName, note: input.note, lines: { create: prepared.map((line, position) => ({ ...line, position })) } }, include });
     const result = toOrderView(order);
-    await tx.idempotencyRecord.create({ data: { sessionId: live.id, key, requestHash, responseJson: JSON.stringify(result), responseStatus: 200, orderId: order.id, expiresAt: live.expiresAt } }); return result;
+    await tx.idempotencyRecord.create({ data: { sessionId: live.id, key, requestHash, responseJson: JSON.stringify(result), responseStatus: 200, orderId: order.id, expiresAt: live.expiresAt } }); return { order: result, season: { name: season.name, closesOn: season.closesOn } };
    }, client);
+   if (outcome.season && input.confirmationEmail) await sendOrderConfirmation(outcome.order, input.confirmationEmail, outcome.season);
+   return outcome.order;
   },
   async lookupOrder(ctx: RequestContext, rawCode: string): Promise<OrderView> {
    const bucket = lookupBucket(ctx);

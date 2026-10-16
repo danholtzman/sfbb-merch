@@ -14,7 +14,8 @@ const hash = password => { const salt = Buffer.alloc(16, 23); return `scrypt:${s
 const env = { ...process.env, NODE_ENV: "development", NEXT_TELEMETRY_DISABLED: "1", PRISMA_HIDE_UPDATE_MESSAGE: "1", DATA_DIR: directory,
   DATABASE_URL: `file:${join(directory, "test.sqlite")}`, PUBLIC_ORIGIN: "http://127.0.0.1:3100",
   MEMBER_PASSWORD_HASH: hash(credentials.memberPassword), ADMIN_PASSWORD_HASH: hash(credentials.adminPassword),
-  SESSION_SECRET: "e2e-only-private-session-secret-".repeat(4), TRUSTED_PROXY_SECRET: "", SESSION_TTL_SECONDS: "43200" };
+  SESSION_SECRET: "e2e-only-private-session-secret-".repeat(4), TRUSTED_PROXY_SECRET: "", SESSION_TTL_SECONDS: "43200",
+  ORDER_CONFIRMATION_EMAILS_ENABLED: "false", RESEND_API_KEY: "", RESEND_FROM_EMAIL: "" };
 process.on("exit", () => rmSync(directory, { recursive: true, force: true }));
 const migration = spawnSync(process.execPath, ["scripts/migrate.mjs"], { env, stdio: "inherit" });
 if (migration.status !== 0) process.exit(1);

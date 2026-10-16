@@ -72,7 +72,14 @@ export function BagProvider({ sessionId, csrfToken, children }: { sessionId: str
   const next = cartReducer(state, { type: "REMOVE_UNAVAILABLE", catalog }); const changed = bagSignature(next) !== bagSignature(state); setData(catalog); replaceState(next); persist(next); return { catalog, changed };
  }
  function startEdit(order: MemberOrder) { dispatch({ type: "LOAD_ORDER", order }); setData(order.catalog); setDetails(null); setPanel("bag"); router.push("/shop"); }
- function submitKey(payload: unknown) { const serialized = JSON.stringify(payload); if (attempt.current?.payload !== serialized) attempt.current = { payload: serialized, key: crypto.randomUUID() }; persist(state); return attempt.current.key; }
+ async function submitKey(payload: unknown) {
+  const serialized = JSON.stringify(payload);
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(serialized));
+  const fingerprint = "sha256:" + Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
+  // Preserve pre-feature retry keys, but replace their saved plaintext payload too.
+  const key = attempt.current && [serialized, fingerprint].includes(attempt.current.payload) ? attempt.current.key : crypto.randomUUID();
+  attempt.current = { payload: fingerprint, key }; persist(state); return key;
+ }
  return <Context.Provider value={{ state, data, ready, sessionId, notice, csrfToken, dispatch, configure, openBag: () => setPanel("bag"), showOrder: setDetails, request }}>
   {children}
   {panel === "bag" && <CartDrawer data={data} onClose={() => setPanel(null)} onCheckout={async () => { const result = await refresh(); if (result.changed) throw { message: "Your bag changed: prices or available items were updated. Review it before continuing." }; if (!result.catalog.open) throw { message: "This season is not accepting orders." }; setPanel("checkout"); }} />}
