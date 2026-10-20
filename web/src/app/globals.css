@@ -209,7 +209,7 @@ p { color: var(--muted); line-height: 1.6; }
 .product-design { display: grid; gap: 6px; font-size: 11px; color: #656a72; margin: 20px 0 0; }
 .product-design select { font-size: 12px; }
 .product-controls { display: grid; grid-template-columns: minmax(0,1fr) 62px 77px; gap: 8px; align-items: end; }
-.product-design + .product-controls { margin-top: 20px; }
+.product-design + .product-controls { margin-top: 12px; }
 .product-controls select, .product-controls input, .product-controls .add-button { height: 38px; min-width: 0; font-size: 12px; line-height: 20px; padding: 8px 10px; }
 .product-quantity { display: grid; gap: 5px; font-size: 10px; color: #656a72; }
 .add-button { background: var(--ink); color: white; border-radius: 4px; font-weight: 600; }
