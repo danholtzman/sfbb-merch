@@ -466,3 +466,7 @@ The earlier Basic Auth architecture note predates the designed login page; recon
 - Manufacturer ordering combines variants across progress states without splitting them by status.
 - CSV quoting, Unicode, multiline notes, formula neutralization, and empty results are handled.
 - A production restart and backup restore preserve orders, photos, artwork sets, and placements.
+
+### Supplied branding assets
+
+Use the supplied SFBB PNG logos instead of the generated SF/BB lettermark. `sfbb_transparent_wide.png` is the logo on light backgrounds; `sfbb_transparent_wide_light.png` is the light-colored logo for dark backgrounds. The blue login panel always uses the light-colored logo. The header follows device color scheme with a matching light/dark background and logo; preserve readable navigation and phone layouts. Preserve image aspect ratios and transparency. Browser favicon links use `Favicon .png` in light mode and `Favicon_dark.png` in dark mode, selected with `prefers-color-scheme` media queries.
