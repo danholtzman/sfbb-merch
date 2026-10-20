@@ -35,10 +35,11 @@ function Product({ style, data }: { style: StyleView; data: ShopData }) {
  }
  return <article className="product" aria-label={style.name}>
   <div className="product-image">{color && set && <CompositePreview styleId={style.id} setId={set.id} colorId={color.id} side={previewSide} revision={data.season?.version ?? 0} label={`${style.name} ${previewSide} in ${color.name}`} />}<div className="shirt-view-toggle" aria-label="Shirt view">{(hasBack ? ["front","back"] as const : ["front"] as const).map(s => <button key={s} aria-pressed={previewSide === s} onClick={() => setSide(s)}>{s === "front" ? "Front" : "Back"}</button>)}</div></div>
-  <div className="product-head"><h3>{style.name}</h3><strong>{formatUsd(style.unitPriceCents)}</strong></div><p>{style.description}</p>{style.manufacturerUrl && <p><a href={style.manufacturerUrl} target="_blank" rel="noopener noreferrer">View manufacturer details ↗</a></p>}
+  <div className="product-head"><h3>{style.name}</h3><strong>{formatUsd(style.unitPriceCents)}</strong></div><p>{style.description}</p>
   <div className="color-row" role="group" aria-label="Color">{style.colors.map(c => <button key={c.id} className="swatch" style={{ backgroundColor: c.hex }} aria-label={c.name} aria-pressed={color?.id === c.id} onClick={() => setColorId(c.id)} />)}<span>{color?.name}</span></div>
   {style.artworkSetIds.length > 1 && <label className="product-design">Artwork set<select value={set?.id ?? ""} onChange={e => setSetId(e.target.value)}>{style.artworkSetIds.map(id => <option key={id} value={id}>{data.artworkSets.find(s => s.id === id)?.name}</option>)}</select></label>}
   <div className="product-controls"><select aria-label="Size" value={sizeId} onChange={e => setSizeId(e.target.value)}><option value="">Select your size</option>{style.sizes.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}</select><label className="product-quantity">Qty<input type="number" min="1" max="2147483647" step="1" inputMode="numeric" value={quantity} onChange={e => setQuantity(e.target.value)} /></label><button className="add-button" disabled={!bag.ready || (!data.open && !data.preview)} onClick={add}>Add +</button></div>
+  {style.manufacturerUrl && <p><a href={style.manufacturerUrl} target="_blank" rel="noopener noreferrer">View manufacturer details ↗</a></p>}
   {error && <p className="form-error" role="alert">{error}</p>}<span className="add-message" role="status">{message}</span>
  </article>;
 }
