@@ -51,12 +51,24 @@ export function createCatalogService(client: PrismaClient = db) {
     }
     const sets = await tx.artworkSet.findMany({ where: { seasonId }, orderBy: { position: "asc" } });
     if (!sets.length) throw new AppError("INVALID_CATALOG", 422, "Create the season's artwork set first.");
+    const selectedSets = input.artworkSetIds ? input.artworkSetIds.map(id => sets.find(set => set.id === id)) : sets;
+    if (selectedSets.some(set => !set) || new Set(input.artworkSetIds).size !== (input.artworkSetIds?.length ?? 0)) throw new AppError("INVALID_SET", 422, "Choose distinct artwork sets from this season.");
+    const photoSlots = new Set<string>();
+    for (const photo of input.blankPhotos) {
+     const slot = `${photo.colorPosition}:${photo.side}`, asset = await tx.asset.findUnique({ where: { id: photo.assetId } });
+     if (photo.colorPosition >= input.colors.length || photoSlots.has(slot) || !asset || !["image/png", "image/jpeg"].includes(asset.mime)) throw new AppError("INVALID_IMAGE", 422, "Choose one stored shirt image per color and side.");
+     photoSlots.add(slot);
+    }
     const last = await tx.merchandiseStyle.aggregate({ where: { seasonId }, _max: { position: true } });
     const style = await tx.merchandiseStyle.create({ data: { seasonId, name: input.name, description: input.description, manufacturerUrl: input.manufacturerUrl, unitPriceCents: input.unitPriceCents, cut: input.cut, position: (last._max.position ?? -1) + 1,
      colors: { create: input.colors.map((c, position) => ({ name: c.name, normalizedName: normalizedName(c.name), hex: c.hex, position })) },
      sizes: { create: uniqueSizes(input.sizes).map((label, position) => ({ label, normalizedLabel: normalizedName(label), position })) },
-     artworkSets: { create: sets.map((s, position) => ({ artworkSetId: s.id, position })) },
+     artworkSets: { create: selectedSets.map((s, position) => ({ artworkSetId: s!.id, position })) },
     }, include });
+    for (const photo of input.blankPhotos) {
+     const color = style.colors.find(c => c.position === photo.colorPosition)!;
+     await tx.blankPhoto.create({ data: { styleId: style.id, colorId: color.id, scopeKey: color.id, side: photo.side, assetId: photo.assetId } });
+    }
     if (parent.lifecycle === "PUBLISHED") await validateSeasonReadiness(tx, seasonId);
     await tx.season.update({ where: { id: seasonId }, data: { version: { increment: 1 } } });
     return view(style);

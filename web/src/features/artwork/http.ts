@@ -24,6 +24,13 @@ export function artworkDeletion(request: Request, params: Promise<{ id: string }
  return apiResponse(async () => { const ctx = await requireActor(request, "admin"); await authorizeMutation(request, ctx); const { id } = await params;
  const input = parseCatalog(z.strictObject({ expectedVersion: versionSchema, expectedReplacementSetId: idSchema }), await readSmallJson(request)); return jsonData(await createArtworkService().deleteArtworkSet(ctx, id, input.expectedVersion, input.expectedReplacementSetId)); });
 }
+export function artworkSideDeletion(request: Request, params: Promise<{id:string;side:string}>) {
+ return apiResponse(async()=>{
+  const ctx=await requireActor(request,"admin");await authorizeMutation(request,ctx);const {id,side:rawSide}=await params;
+  const side=parseCatalog(sideSchema,rawSide),input=parseCatalog(z.strictObject({expectedVersion:versionSchema}),await readSmallJson(request));
+  return jsonData(await createArtworkService().removeArtworkSide(ctx,id,input.expectedVersion,side));
+ });
+}
 export function imageUpload(request: Request, params: Promise<{ id: string; side: string }>, purpose: "artwork" | "blank") {
  return apiResponse(async () => {
   const ctx = await requireActor(request, "admin"); await authorizeMutation(request, ctx);
@@ -49,6 +56,14 @@ export function imageUpload(request: Request, params: Promise<{ id: string; side
   const asset = await assets.storeImage(ctx, file, purpose);
   await service.setBlankPhoto(ctx, id, colorId, side, asset.id, version);
   return jsonData((await createCatalogService().getCatalog(ctx, style.seasonId)).styles.find(s => s.id === id));
+ });
+}
+export function draftBlankUpload(request: Request) {
+ return apiResponse(async () => {
+  const ctx = await requireActor(request, "admin"); await authorizeMutation(request, ctx);
+  let form: FormData; try { form = await uploadForm(request); } catch { throw new AppError("INVALID_IMAGE", 422, "Choose one image of at most 8 MB."); }
+  if ([...form.keys()].some(key => key !== "file") || form.getAll("file").length !== 1 || !(form.get("file") instanceof File)) throw new AppError("INVALID_IMAGE", 422, "Choose one shirt image.");
+  return jsonData(await runtimeAssets().storeImage(ctx, form.get("file") as File, "blank"));
  });
 }
 export function assetRead(request: Request, params: Promise<{ id: string }>) {

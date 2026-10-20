@@ -69,13 +69,14 @@ it("rejects cross-season sets and the last set; removes availability without rew
   expect(result.removedSetIds).toEqual([c.artwork.id]);
   expect(await database.client.orderLine.count()).toBe(1);
 });
-it("protects published readiness when adding an incomplete offered set or deleting the last style", async () => {
+it("allows blank artwork after publication while protecting the last published style", async () => {
   const c = await seedCatalog(database.client);
   await database.client.season.update({ where: { id: c.season.id }, data: { lifecycle: "PUBLISHED" } });
   const extra = await database.client.artworkSet.create({ data: { seasonId: c.season.id, name: "Missing", normalizedName: "missing" } });
-  await expect(service.setStyleArtworkSets(ctx, c.style.id, 1, [extra.id])).rejects.toMatchObject({ code: "SEASON_NOT_READY" });
-  await expect(service.createStyle(ctx, c.season.id, input)).rejects.toMatchObject({ code: "SEASON_NOT_READY" });
-  await expect(service.deleteStyle(ctx, c.style.id, 1)).rejects.toMatchObject({ code: "LAST_PUBLISHED_STYLE" });
+  const updated=await service.setStyleArtworkSets(ctx, c.style.id, 1, [extra.id]);
+  const added=await service.createStyle(ctx, c.season.id, input);
+  await service.deleteStyle(ctx,added.id,added.version);
+  await expect(service.deleteStyle(ctx, c.style.id, updated.version)).rejects.toMatchObject({ code: "LAST_PUBLISHED_STYLE" });
 });
 it("deletes unused styles and dependents while retaining artwork and other styles", async () => {
   const c = await seedCatalog(database.client);
@@ -110,4 +111,15 @@ it("edits and clears manufacturer details with administrator and version checks"
  await expect(service.updateStyleDetails({ ...ctx, actor: { ...ctx.actor, role: "member" } }, c.style.id, 2, details)).rejects.toMatchObject({ status: 403 });
  await expect(service.updateStyleDetails(ctx, c.style.id, 2, { ...details, manufacturerUrl: "javascript:alert(1)" })).rejects.toMatchObject({ status: 422 });
  expect(await service.updateStyleDetails(ctx, c.style.id, 2, { description: updated.description, manufacturerUrl: " " })).toMatchObject({ manufacturerUrl: "", version: 3 });
+});
+it("creates selected artwork availability and per-color photos together, rejecting invalid drafts atomically", async()=>{
+ const c=await seedCatalog(database.client),other=await seedCatalog(database.client);
+ const asset=await database.client.asset.create({data:{mime:"image/jpeg",width:100,height:100,byteSize:1024,storageKey:randomUUID(),sha256:"a".repeat(64)}});
+ const raw={...input,artworkSetIds:[c.artwork.id],blankPhotos:[{colorPosition:0,side:"front",assetId:asset.id}]};
+ const style=await service.createStyle(ctx,c.season.id,raw);
+ expect(style.artworkSetIds).toEqual([c.artwork.id]);
+ expect(await database.client.blankPhoto.findMany({where:{styleId:style.id}})).toMatchObject([{colorId:style.colors[0].id,scopeKey:style.colors[0].id,side:"front",assetId:asset.id}]);
+ const count=await database.client.merchandiseStyle.count();
+ for(const invalid of [{...raw,artworkSetIds:[]},{...raw,artworkSetIds:[other.artwork.id]},{...raw,artworkSetIds:[c.artwork.id,c.artwork.id]},{...raw,blankPhotos:[{...raw.blankPhotos[0],colorPosition:1}]},{...raw,blankPhotos:[{...raw.blankPhotos[0],assetId:randomUUID()}]},{...raw,blankPhotos:[...raw.blankPhotos,...raw.blankPhotos]}]) await expect(service.createStyle(ctx,c.season.id,invalid)).rejects.toMatchObject({status:422});
+ expect(await database.client.merchandiseStyle.count()).toBe(count);
 });

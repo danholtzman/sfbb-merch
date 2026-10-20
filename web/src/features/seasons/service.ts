@@ -20,6 +20,7 @@ async function noOverlap(tx: DbTransaction, season: SeasonView) {
   if (conflict) throw new AppError("SEASON_OVERLAP", 422, `These dates overlap the published season “${conflict.name}”. Opening and closing dates are inclusive.`, { opensOn: "Published ordering windows cannot share a day." });
 }
 export async function validateSeasonReadiness(tx: DbTransaction, id: string) {
+  const published = (await tx.season.findUniqueOrThrow({ where: { id } })).lifecycle === "PUBLISHED";
   const styles = await tx.merchandiseStyle.findMany({ where: { seasonId: id }, include: { colors: true, sizes: true, artworkSets: { include: { artworkSet: { include: { frontAsset: true, backAsset: true } } } } } });
   const fields: Record<string, string> = {};
   if (!styles.length) fields.styles = "Add at least one shirt style.";
@@ -30,7 +31,7 @@ export async function validateSeasonReadiness(tx: DbTransaction, id: string) {
       if (set.seasonId !== id) fields[`${set.id}.season`] = `${set.name}: artwork must belong to this season.`;
       for (const side of ["front", "back"] as const) {
         const asset = side === "front" ? set.frontAsset : set.backAsset;
-        if (side === "back" && !asset) continue;
+        if (!asset && (side === "back" || published)) continue;
         if (!asset || asset.mime !== "image/png" || asset.width <= 0 || asset.height <= 0 || asset.byteSize <= 0) fields[`${set.id}.${side}`] = `${set.name}: upload a valid ${side} PNG.`;
       }
     }

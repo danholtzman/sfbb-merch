@@ -80,7 +80,7 @@ it("deleting an unused sole-set association names and assigns the remaining set 
  expect(await database.client.blankPhoto.count()).toBe(1);
  await expect(service.createArtworkSet(ctx, c.season.id, " replacement ")).rejects.toMatchObject({ status: 422 });
 });
-it("published offered sets cannot be reassigned to missing artwork; versions and admin roles are enforced", async () => {
+it("published sets may have blank sides; versions and admin roles are enforced", async () => {
  const c = await seedCatalog(database.client), asset = await store.storeImage(ctx, await png(), "artwork");
  const front = await service.replaceArtworkSide(ctx, c.artwork.id, 1, "front", asset.id);
  await service.replaceArtworkSide(ctx, c.artwork.id, front.version, "back", asset.id);
@@ -88,8 +88,8 @@ it("published offered sets cannot be reassigned to missing artwork; versions and
  await expect(service.replaceArtworkSide(ctx, c.artwork.id, 1, "front", asset.id)).rejects.toMatchObject({ code: "STALE_VERSION" });
  await expect(service.createArtworkSet({ ...ctx, actor: { ...ctx.actor, role: "member" } }, c.season.id, "Forbidden")).rejects.toMatchObject({ status: 403 });
  const replacement = await service.createArtworkSet(ctx, c.season.id, "Incomplete");
- await expect(service.deleteArtworkSet(ctx, c.artwork.id, 3)).rejects.toMatchObject({ code: "SEASON_NOT_READY" });
- expect(await database.client.artworkSet.count()).toBe(2);
+ await expect(service.deleteArtworkSet(ctx, c.artwork.id, 3)).resolves.toEqual({replacementSetId:replacement.id});
+ expect(await database.client.artworkSet.count()).toBe(1);
  expect(replacement.frontAssetId).toBeNull();
 });
 it("deletion cannot silently use a different replacement than the named confirmation", async () => {
@@ -118,4 +118,20 @@ it("stale placement writes leave the last saved scoped geometry intact", async (
  await service.savePlacement(ctx,c.style.id,c.artwork.id,"front",null,values);
  await expect(service.savePlacement(ctx,c.style.id,c.artwork.id,"front",null,{...values,x:90},99)).rejects.toMatchObject({code:"STALE_VERSION",status:409});
  expect((await service.getCompositeSpec(c.style.id,c.artwork.id,c.color.id,"front")).placement.x).toBe(40);
+});
+it("clears either artwork side without deleting the set, placements, other side or published availability",async()=>{
+ const c=await seedCatalog(database.client), asset=await store.storeImage(ctx,await png(),"artwork");
+ const withFront=await service.replaceArtworkSide(ctx,c.artwork.id,1,"front",asset.id);
+ const both=await service.replaceArtworkSide(ctx,c.artwork.id,withFront.version,"back",asset.id);
+ await service.savePlacement(ctx,c.style.id,c.artwork.id,"front",null,{x:50,y:50,width:30,rotation:0});
+ await database.client.season.update({where:{id:c.season.id},data:{lifecycle:"PUBLISHED"}});
+ const frontCleared=await service.removeArtworkSide(ctx,c.artwork.id,both.version,"front");
+ expect(frontCleared).toMatchObject({frontAssetId:null,backAssetId:asset.id,version:both.version+1});
+ await expect(service.removeArtworkSide(ctx,c.artwork.id,both.version,"back")).rejects.toMatchObject({status:409});
+ await expect(service.removeArtworkSide({...ctx,actor:{...ctx.actor,role:"member"}},c.artwork.id,frontCleared.version,"back")).rejects.toMatchObject({status:403});
+ const empty=await service.removeArtworkSide(ctx,c.artwork.id,frontCleared.version,"back");
+ expect(empty).toMatchObject({frontAssetId:null,backAssetId:null});
+ expect(await database.client.placement.count()).toBe(1);expect(await database.client.asset.count()).toBe(1);
+ expect((await database.client.season.findUniqueOrThrow({where:{id:c.season.id}})).lifecycle).toBe("PUBLISHED");
+ expect((await service.getCompositeSpec(c.style.id,c.artwork.id,c.color.id,"front")).artworkUrl).toBeNull();
 });

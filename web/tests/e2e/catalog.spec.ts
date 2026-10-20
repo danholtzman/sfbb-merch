@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import sharp from "sharp";
 import credentials from "../fixtures/credentials.json" with { type: "json" };
 test.beforeEach(async ({ page, isMobile }) => {
  test.skip(isMobile, "Catalog administration is desktop only.");
@@ -17,7 +18,15 @@ test("creates a custom style, manages immediate price and explicitly saved color
  await dialog.getByLabel("Manufacturer URL (optional)", { exact: true }).fill("https://example.com/youth-tee");
  await dialog.getByLabel("Price ($)", { exact: true }).fill("0");
  await dialog.getByLabel("Available sizes", { exact: true }).fill("Youth S, 4XL, Youth S");
+ const photo=await sharp({create:{width:40,height:60,channels:4,background:"blue"}}).png().toBuffer();
+ await expect(dialog.getByRole("heading",{name:"Available artwork sets",exact:true})).toBeVisible();
+ await dialog.getByLabel("Upload blank front photo",{exact:true}).setInputFiles({name:"front.png",mimeType:"image/png",buffer:photo});
+ await dialog.getByLabel("Upload blank back photo",{exact:true}).setInputFiles({name:"back.png",mimeType:"image/png",buffer:photo});
  await dialog.getByRole("button", { name: "Add shirt style", exact: true }).click();
+ await expect(dialog).toHaveCount(0);
+ const createdCard=page.getByRole("article").filter({has:page.getByRole("heading",{name:"Youth browser tee",exact:true})});
+ await expect(createdCard.locator('svg image[data-blank="true"]')).toHaveCount(2);
+ await createdCard.getByRole("button",{name:"Manage style",exact:true}).click();
  await expect(dialog.getByRole("heading", { name: "Manage Youth browser tee" })).toBeVisible();
  await expect(dialog.getByLabel("Manufacturer URL (optional)", { exact: true })).toHaveValue("https://example.com/youth-tee");
  await dialog.getByLabel("Manufacturer URL (optional)", { exact: true }).fill("https://example.com/updated-tee");

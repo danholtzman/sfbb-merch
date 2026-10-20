@@ -76,12 +76,12 @@ test("season endpoints reject forged roles, missing CSRF, and invalid input", as
   expect((await page.request.get("/api/admin/seasons", { headers: { "X-Role": "admin" } })).status()).toBe(403);
 });
 
-test("publication explains both missing sides and preview is explicitly unavailable for checkout", async ({ page }) => {
+test("publication explains missing front artwork and preview is explicitly unavailable for checkout", async ({ page }) => {
   const card = page.getByRole("article").first();
   await card.getByRole("button", { name: "Publish season" }).click();
   const alert = page.locator(".admin-dashboard").getByRole("alert");
   await expect(alert).toContainText("Season artwork: upload a valid front PNG");
-  await expect(alert).toContainText("Season artwork: upload a valid back PNG");
+  await expect(alert).not.toContainText("Season artwork: upload a valid back PNG");
   await card.getByRole("link", { name: "Preview shop" }).click();
   await expect(page.getByText("Preview only — checkout unavailable", { exact: true })).toBeVisible();
 });

@@ -28,6 +28,12 @@ test("paired uploads and color-specific blanks persist through reload, and new s
  await expect(dialog.getByRole("img", { name: "Back artwork preview" })).toBeVisible();
  await expect.poll(() => dialog.getByRole("img", { name: "Back artwork preview" }).evaluate(image => (image as HTMLImageElement).naturalWidth)).toBe(30);
  await page.screenshot({ path: info.outputPath("artwork-slots.png"), fullPage: true });
+ await dialog.getByRole("button",{name:"Remove front artwork",exact:true}).click();
+ await expect(dialog.getByRole("img",{name:"Front artwork preview"})).toHaveCount(0);
+ await expect(dialog.getByRole("img",{name:"Back artwork preview"})).toBeVisible();
+ await dialog.getByRole("button",{name:"Remove back artwork",exact:true}).click();
+ await expect(dialog.getByRole("img",{name:"Back artwork preview"})).toHaveCount(0);
+ for(const side of ["front","back"]) {await dialog.getByLabel(`Upload ${side} artwork`).setInputFiles({name:`${side}.png`,mimeType:"image/png",buffer:png});await expect(dialog.getByRole("img",{name:`${side === "front" ? "Front" : "Back"} artwork preview`})).toBeVisible();}
  await dialog.getByRole("button", { name: "Done", exact: true }).click();
  const first = page.getByRole("article").first();
  await expect(first.locator('svg image[data-artwork="true"]')).toHaveCount(2);

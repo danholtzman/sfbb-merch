@@ -1,6 +1,19 @@
 import { test, expect } from "@playwright/test";
 import { memberFixture, memberLogin, addShirt } from "./member-setup";
 test.describe("member ordering", { tag: "@member-ui" }, () => {
+ test("product previews align their details and controls despite different content",async({page,request,isMobile},info)=>{
+  test.skip(isMobile,"Alignment compares cards side by side on desktop");const fixture=await memberFixture(request);
+  const extra=await request.post(`/api/admin/seasons/${fixture.season.id}/artwork-sets`,{headers:fixture.headers,data:{name:"Alternate artwork"}});expect(extra.ok()).toBe(true);const extraSet=(await extra.json()).data;
+  for(const [index,name] of ["A longer shirt style name wrapping across lines","Short tee"].entries()) {
+   const response=await request.post(`/api/admin/seasons/${fixture.season.id}/catalog`,{headers:fixture.headers,data:{name,description:index===0 ? "A longer cotton shirt description that wraps over multiple lines to explain the fit and fabric.":"",manufacturerUrl:index===0 ? "https://example.com/shirt":"",unitPriceCents:2500,cut:"classic",colors:[{name:"Blue",hex:"#1247ED"}],sizes:["S","L"],artworkSetIds:index===0 ? [fixture.set.id,extraSet.id]:[fixture.set.id]}});expect(response.ok()).toBe(true);
+  }
+  await memberLogin(page);const cards=page.locator(".product");await expect(cards).toHaveCount(3);
+  for(const selector of [".product-image",".product-head",".product-details",".color-row",".product-controls"]) {
+   const tops=await cards.evaluateAll((elements,selector)=>elements.map(element=>element.querySelector(selector)!.getBoundingClientRect().top),selector);
+   expect(Math.max(...tops)-Math.min(...tops)).toBeLessThanOrEqual(1);
+  }
+  await page.screenshot({path:info.outputPath("aligned-products.png"),fullPage:true});
+ });
  test("optional email submits with checkout while the disabled service still completes the order", async ({ page, request }) => {
   await memberFixture(request); await memberLogin(page); await addShirt(page);
   // Exercise the enabled form without sending external mail from the test server.
@@ -10,6 +23,7 @@ test.describe("member ordering", { tag: "@member-ui" }, () => {
   });
   await page.getByRole("button", { name: /Bag 1/ }).click(); await page.getByRole("button", { name: "Continue to checkout" }).click();
   await page.getByLabel("Full name", { exact: true }).fill("Email Member");
+  await expect(page.locator("#confirmation-email-help")).toContainText("Email addresses are not stored.");
   await page.getByLabel("Confirmation email (optional)", { exact: true }).fill("member@example.com");
   let lost = false;
   await page.route("**/api/orders", async route => {

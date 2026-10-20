@@ -53,6 +53,15 @@ export function createArtworkService(client: PrismaClient = db) { return {
    return tx.artworkSet.findUniqueOrThrow({ where: { id } });
   }, client);
  },
+ async removeArtworkSide(ctx: RequestContext, id: string, version: number, side: Side): Promise<ArtworkSetView> {
+  admin(ctx); parseCatalog(sideSchema,side);
+  return withTransaction(async tx => {
+   const set = await setRecord(tx,id,version);
+   assertVersionWrite((await tx.artworkSet.updateMany({where:{id,version},data:{[side === "front" ? "frontAssetId" : "backAssetId"]:null,version:{increment:1}}})).count);
+   await seasonChanged(tx,set.seasonId);
+   return tx.artworkSet.findUniqueOrThrow({where:{id}});
+  },client);
+ },
  async setBlankPhoto(ctx: RequestContext, styleId: string, colorId: string | null, side: Side, assetId: string, expectedVersion?: number): Promise<void> {
   admin(ctx); parseCatalog(sideSchema, side); parseCatalog(idSchema, assetId);
   return withTransaction(async tx => {

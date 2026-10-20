@@ -44,10 +44,10 @@ For conflicts, apply the latest decisions recorded here. The mockup's current CS
 - Payment processing, payment gateways, subscriptions, or online collection of money.
 - Individual member accounts, sign-up, personal passwords, profiles, or password reset flows.
 - Required paid services, externally hosted databases, or commercial email providers.
-- Email address collection and automated email confirmation in the initial release.
+- Storing email addresses with member orders.
 - Mobile administration.
 
-The original request contemplated email, but the approved first-release direction uses an on-screen order code instead. Do not add an email field or make successful checkout depend on email delivery. A later email feature is outside this implementation scope.
+Checkout may offer an optional confirmation email when the configured email service is enabled. Display “Email addresses are not stored.” under the field. Use the address only for that confirmation request; do not persist it with orders, browser cart data, or CSV exports. Successful checkout must never depend on email delivery. Always show the order code.
 
 ## 3. Roles, authentication, and permissions
 
@@ -89,7 +89,7 @@ Persisted lifecycle states in the mockup are Draft, Published, and Archived. Dis
 
 Evaluate dates in `America/Los_Angeles`. Opening and closing dates are inclusive. In timestamp terms, accept orders from the start of opening day until the start of the day after closing day in that timezone. Do not rely on the client's timezone or clock.
 
-Closing date cannot precede opening date. Published season windows may not overlap, including their boundary dates. Recheck overlap when publishing and when editing dates of an already published season. A draft may overlap while being prepared, but cannot be published with that overlap. Publication also requires at least one merchandise item and a valid uploaded front PNG and back PNG for every artwork set offered by the season’s merchandise. Unassigned additional sets do not block publication. Blank shirt photos remain optional.
+Closing date cannot precede opening date. Published season windows may not overlap, including their boundary dates. Recheck overlap when publishing and when editing dates of an already published season. A draft may overlap while being prepared, but cannot be published with that overlap. Publication also requires at least one merchandise item and a valid uploaded front PNG for every artwork set offered by the season’s merchandise. Back artwork and blank shirt photos are optional. After publication, admins may remove either artwork side while ordering stays available with that side blank. Unassigned additional sets do not block publication.
 
 ### Seasons tab
 
@@ -138,10 +138,12 @@ Provide:
 - Sample shirt shape: Regular short sleeve, Fitted short sleeve, or Long sleeve.
 - Color rows with required names and color-picker swatches; Add color and removal of rows during creation.
 - Required Available sizes, entered as comma-separated labels; trim and deduplicate them while preserving order.
+- Available artwork-set checkboxes, with at least one selected.
+- Optional front/back blank shirt photos per color, with local previews and removal before saving.
 
 Defaults: USD 25, one Band blue color, and `XS, S, M, L, XL, 2XL, 3XL`. Sizes are not fixed: labels such as Youth S and 4XL are permitted. Color names are unique within the style, case-insensitively, and limited to 40 characters. The sample shape is explicitly a fallback until real blank photos are uploaded.
 
-New styles are made available with the season's artwork sets. Adding a style opens its Manage style modal so photos can be uploaded. Name, description, shape, and size-list editing after creation are not currently exposed by the mockup; do not assume those extra controls are established UI requirements.
+Default to all season artwork sets, and let admins select availability within the creation form. Stage selected shirt photos first, then create the style with its available sets and per-color photo associations in one database transaction. On success, close the creation modal and show the new style; do not open a second setup modal. Keep form inputs and selected files on validation/upload failures, without creating a partial style. Name, description, shape, and size-list editing after creation are not currently exposed by the mockup; do not assume those extra controls are established UI requirements.
 
 ### Merchandise tab and Manage style
 
@@ -182,19 +184,21 @@ This replaces the earlier notion of a single front-only design. In the mockup, `
 
 Provide Front artwork and Back artwork upload controls and separately labelled thumbnails. With one set, show Season artwork set and omit the set selector. With multiple sets, show the Artwork set selector. Put creation of another set under **Additional artwork sets (optional)**; its creation modal asks for a required set name, maximum 60 characters, unique ignoring case.
 
+Provide Remove front artwork and Remove back artwork buttons when that side is uploaded. Removing a side clears only its image association, preserves the set, other side and saved placements, and refreshes previews using version checks. Ordering in a published season stays available with the removed side blank. Existing orders remain intact.
+
 Uploading either side updates that side across all applicable shirt styles and colors. It does not overwrite the other side. Uploaded PNGs retain transparency and use their original colors; do not recolor uploaded artwork automatically.
 
 Delete artwork set opens a confirmation removing both files and this set's saved placements. Protect the season's last set and sets referenced by any order, including cancelled orders. Styles using only the deleted set switch to the remaining set explicitly named in the confirmation; other styles retain their remaining associations. Remove unsent bag lines using the deleted set. Do not delete blank shirt photos.
 
 ### Blank shirt photos
 
-Manage style contains **Blank shirt photos** with a color selector and separate **Upload blank front photo** and **Upload blank back photo** controls. These photos must be unprinted shirts. Explain that season artwork is applied separately.
+Both Add shirt style and Manage style contain **Blank shirt photos** with a color selector and separate **Upload blank front photo** and **Upload blank back photo** controls. These photos must be unprinted shirts. Explain that season artwork is applied separately.
 
 Blank photos are specific to shirt style, color, and side. Uploading a front photo never overwrites the back or another color. Show uploaded thumbnails or a labelled sample-blank fallback. There is no style selector inside a style-specific modal.
 
 Artwork accepts PNG; blank photos accept PNG or JPEG. The mockup's limit is 8 MB per uploaded file. Validate type, actual decoded image content, size, and safe server paths in production. Store assets durably on the Pi; do not depend on browser data URLs.
 
-Missing artwork during setup is allowed and labelled. The sample front drawing is a mockup fallback, not real band artwork; a missing back must not reuse the front artwork. Confirmed production rule: block publication until both valid front and back PNGs are uploaded for every set offered by a shirt style. Unassigned additional sets do not block publication. The mockup currently lacks this check; its sample artwork does not satisfy it. Blank shirt photos remain optional because fallback shirt shapes are supported.
+Missing artwork during setup is allowed and labelled. The sample front drawing is a mockup fallback, not real band artwork; a missing back must not reuse the front artwork. Require a valid front PNG when initially publishing each offered set; back artwork is optional. After publication, explicit removal of either side is permitted while ordering stays available with that side blank. Unassigned additional sets do not block publication. The mockup currently lacks this check; its sample artwork does not satisfy it. Blank shirt photos remain optional because fallback shirt shapes are supported.
 
 ## 7. Preview composition and placement editor
 
@@ -236,6 +240,8 @@ Saving updates member, admin, and bag previews. Production may cache generated c
 ### Shop
 
 Use the current open collection, season name, announcement, status, and closing date. Each shirt card shows photo/composite, front/back toggle, name, price, description, selectable color swatches with visible selected color name, size dropdown, quantity input, and Add.
+
+Align shop cards by shared rows for images, headings, details, color choices, artwork selectors, ordering controls and feedback. Longer titles/descriptions, optional manufacturer links and differing selector counts must not shift adjacent cards’ controls vertically. Preserve this layout responsively without horizontal overflow.
 
 Display Artwork set selection only when the style offers multiple sets. One set is selected automatically and must work without a visible selector. Size is required; default quantity is 1 and must be a positive whole number.
 
