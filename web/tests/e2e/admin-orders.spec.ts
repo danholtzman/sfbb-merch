@@ -38,7 +38,7 @@ test.describe("admin order management", { tag: "@admin-orders" }, () => {
   const expected = [
    ["Billing CSV",["Full name","Order code","Total T-shirts","Amount Owed","Paid?","Comment"],4,"billing"],
    ["Fulfillment by customer CSV",["Name","Item","Artwork set","Color","Size","Quantity","Fulfilled"],3,"fulfillment-by-member"],
-   ["Fulfillment by product CSV",["Item","Artwork set","Color","Size","Quantity","Name","Fulfilled"],2,"fulfillment-by-product"],
+   ["Fulfillment by product CSV",["Item","Artwork set","Color","Size","Quantity","Fulfilled"],1,"fulfillment-by-product"],
    ["T-shirt ordering CSV",["Item","Artwork set","Color","Size","Total","Ordered?"],1,"manufacturer-order"]
   ] as const;
   for (const [button,header,count,suffix] of expected) {
@@ -49,7 +49,7 @@ test.describe("admin order management", { tag: "@admin-orders" }, () => {
    if (suffix==="manufacturer-order") expect(rows[1]).toEqual([fixture.style.name,fixture.set.name,"Blue","L","7",""]);
    if (suffix==="billing") expect(rows.at(-1)).toEqual(["Totals","","7","75.00","",""]);
    if (suffix==="fulfillment-by-member") expect(rows[1]).toEqual(["Alex Revised",fixture.style.name,fixture.set.name,"Blue","L","4",""]);
-   if (suffix==="fulfillment-by-product") { expect(rows.slice(1).map(r=>[r[5],r[3],r[4],r[6]])).toEqual([["Alex Revised","L","4",""],["Bea Chen","L","3",""]]);expect(rows[2].slice(0,2)).toEqual(["",""]); }
+   if (suffix==="fulfillment-by-product") expect(rows[1]).toEqual([fixture.style.name,fixture.set.name,"Blue","L","7",""]);
   }
   await page.screenshot({path:info.outputPath("admin-orders.png"),fullPage:true});
  });

@@ -17,11 +17,11 @@ it("product fulfillment groups colors and sizes together while separating artwor
  const other={...line,artworkSetId:"encore",artworkSetName:"Encore",quantity:1};
  const orders=[make(),make({code:"NEXT22",lines:[{...line,quantity:1}]}),make({fullName:"Bea",progress:"COMPLETE",lines:[{...line,sizeId:"small",sizeLabel:"S",quantity:1},red]}),make({fullName:"Zoe",progress:"DELIVERED_UNPAID",lines:[other]}),make({cancelled:true})];
  expect(productDeliveryRows(orders)).toEqual([
-  ["Item","Artwork set","Color","Size","Quantity","Name","Fulfilled"],
-  ["Classic Tee","Encore","Blue","L","1","Zoe",""],[],
-  ["Classic Tee","Season pair","Blue","L","3","Alex",""],
-  ["","","Blue","S","1","Bea",""],
-  ["","","Red","L","1","Bea",""]
+  ["Item","Artwork set","Color","Size","Quantity","Fulfilled"],
+  ["Classic Tee","Encore","Blue","L","1",""],[],
+  ["Classic Tee","Season pair","Blue","S","1",""],
+  ["","","Blue","L","3",""],
+  ["","","Red","L","1",""]
  ]);
  expect(productDeliveryRows([...orders].reverse())).toEqual(productDeliveryRows(orders));
  const distinct=productDeliveryRows([make(),make({lines:[{...line,styleId:"same-name-other-style"}]}),make({lines:[{...line,colorHex:"#000080"}]})]);
@@ -30,10 +30,28 @@ it("product fulfillment groups colors and sizes together while separating artwor
 });
 it("shirt ordering matches the sample and retains historical identities across all progress states", () => {
  const orders = [make(), make({ progress: "DELIVERED_UNPAID" }), make({ progress: "COMPLETE" }), make({ lines: [{ ...line, styleId: "tee-b", quantity: 1 }] }), make({ lines: [{ ...line, colorHex: "#000080", quantity: 1 }] }), make({ lines: [{ ...line, styleName: "Another tee", quantity: 1 }] }), make({ cancelled: true })];
- expect(manufacturerRows(orders)).toEqual([["Item","Artwork set","Color","Size","Total","Ordered?"], ["Another tee","Season pair","Blue","L","1",""], ["Classic Tee","Season pair","Blue","L","1",""], ["Classic Tee","Season pair","Blue","L","6",""], ["Classic Tee","Season pair","Blue","L","1",""]]);
+ expect(manufacturerRows(orders)).toEqual([["Item","Artwork set","Color","Size","Total","Ordered?"], ["Another tee","Season pair","Blue","L","1",""], [], ["Classic Tee","Season pair","Blue","L","1",""], ["","Season pair","Blue","L","6",""], [], ["Classic Tee","Season pair","Blue","L","1",""]]);
  expect(manufacturerRows([...orders].reverse())).toEqual(manufacturerRows(orders));
  const sizes=["3XL","L","XS","2XL","S","XL","M"];
  expect(manufacturerRows([make({lines:sizes.map(size=>({...line,sizeId:size,sizeLabel:size}))})]).slice(1).map(r=>r[3])).toEqual(["XS","S","M","L","XL","2XL","3XL"]);
+});
+it("product fulfillment combines members and sorts colors then clothing sizes within each artwork section",()=>{
+ const sizes=["3XL","L","XS","2XL","S","XL","M"];
+ const lines=sizes.map(size=>({...line,sizeId:size,sizeLabel:size,quantity:1}));
+ const result=productDeliveryRows([make({fullName:"Zoe",lines}),make({fullName:"Alex",lines:[{...line,sizeId:"S",sizeLabel:"S",quantity:2},{...line,colorId:"black",colorName:"Black",quantity:1}]})]);
+ expect(result.slice(1).map(r=>r.slice(2))).toEqual([["Black","L","1",""],["Blue","XS","1",""],["Blue","S","3",""],["Blue","M","1",""],["Blue","L","1",""],["Blue","XL","1",""],["Blue","2XL","1",""],["Blue","3XL","1",""]]);
+});
+it("manufacturer sections sort item, artwork, color and clothing size in that order",()=>{
+ const variants=[
+  {...line,styleId:"z",styleName:"Z tee"},
+  {...line,artworkSetId:"z",artworkSetName:"Z set",colorName:"Black"},
+  {...line,artworkSetId:"a",artworkSetName:"A set",colorName:"White"},
+  ...["L","S","2XL","XS"].map(size=>({...line,artworkSetId:"a",artworkSetName:"A set",colorName:"Black",sizeId:size,sizeLabel:size}))
+ ];
+ expect(manufacturerRows([make({lines:variants})]).slice(1)).toEqual([
+  ["Classic Tee","A set","Black","XS","2",""],["","A set","Black","S","2",""],["","A set","Black","L","2",""],["","A set","Black","2XL","2",""],
+  ["","A set","White","L","2",""],["","Z set","Black","L","2",""],[],["Z tee","Season pair","Blue","L","2",""]
+ ]);
 });
 it("CSV quotes every cell, escapes multiline Unicode text, adds BOM/CRLF and neutralizes formula prefixes including whitespace", () => {
  const bytes = csvEncode([["Name", "Note"], ['Zoë, "Brass"', "Line 1\nLine 2"], ["=SUM(1)", "+1"], ["-1", "@test"], ["\tformula", "\rformula"], ["  =SUM(1)", "0.00"]]);
@@ -48,7 +66,7 @@ it("filenames normalize accented names, cap slugs at 80 characters, include the 
 });
 it("empty exports contain only their exact header and can aggregate quantities above a single line's bound", () => {
  expect(billingRows([])).toEqual([["Full name","Order code","Total T-shirts","Amount Owed","Paid?","Comment"]]);
- expect(productDeliveryRows([])).toEqual([["Item","Artwork set","Color","Size","Quantity","Name","Fulfilled"]]);
+ expect(productDeliveryRows([])).toEqual([["Item","Artwork set","Color","Size","Quantity","Fulfilled"]]);
  expect(deliveryRows([])).toEqual([["Name","Item","Artwork set","Color","Size","Quantity","Fulfilled"]]);
  expect(manufacturerRows([])).toEqual([["Item","Artwork set","Color","Size","Total","Ordered?"]]);
  expect(manufacturerRows([make({ lines: [{ ...line, quantity: 2147483647 }] }), make({ lines: [{ ...line, quantity: 2147483647 }] })])[1][4]).toBe("4294967294");
@@ -69,7 +87,7 @@ it("real DB exports are season scoped, snapshot based, and reject member/revoked
   expect(new TextDecoder().decode(report.bytes)).toBe('"Name","Item","Artwork set","Color","Size","Quantity","Fulfilled"\r\n"Chosen","Classic Tee","Season artwork","Blue","L","2",""\r\n');
   const productReport=await service.export(ctx,first.season.id,"product-delivery");
   expect(productReport.filename).toBe("sfbb-test-season-2026-10-01-fulfillment-by-product.csv");
-  expect(new TextDecoder().decode(productReport.bytes)).toBe('"Item","Artwork set","Color","Size","Quantity","Name","Fulfilled"\r\n"Classic Tee","Season artwork","Blue","L","2","Chosen",""\r\n');
+  expect(new TextDecoder().decode(productReport.bytes)).toBe('"Item","Artwork set","Color","Size","Quantity","Fulfilled"\r\n"Classic Tee","Season artwork","Blue","L","2",""\r\n');
   await expect(service.export({ ...ctx, actor: { ...ctx.actor, role: "member" } },first.season.id,"billing")).rejects.toMatchObject({ status: 403 });
   await database.client.session.delete({ where: { id: session.id } });
   await expect(service.export(ctx,first.season.id,"billing")).rejects.toMatchObject({ status: 401 });

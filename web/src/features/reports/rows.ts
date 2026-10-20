@@ -53,25 +53,37 @@ export function deliveryRows(orders: OrderView[]): string[][] {
  }
  return rows;
 }
+// These exports sort artwork before color; member fulfillment retains its existing order.
+function productVariantCompare(a: OrderLineView,b: OrderLineView): number {
+ return compare(a.artworkSetName,b.artworkSetName) || variantCompare(a,b);
+}
 export function productDeliveryRows(orders: OrderView[]): string[][] {
- const rows:string[][]=[["Item","Artwork set","Color","Size","Quantity","Name","Fulfilled"]];
- const groups=new Map<string,{line:OrderLineView;members:Map<string,{name:string;line:OrderLineView;quantity:bigint}>}>();
+ const rows:string[][]=[["Item","Artwork set","Color","Size","Quantity","Fulfilled"]];
+ const sections=new Map<string,{line:OrderLineView;lines:OrderLineView[]}>();
  for(const order of sortedOrders(orders)) for(const line of order.lines) {
   const key=JSON.stringify([line.styleId,line.artworkSetId,line.styleName,line.artworkSetName]);
-  const section=groups.get(key) ?? {line,members:new Map<string,{name:string;line:OrderLineView;quantity:bigint}>()};
-  const memberKey=JSON.stringify([order.fullName,identity(line)]),previous=section.members.get(memberKey);
-  section.members.set(memberKey,{name:order.fullName,line,quantity:(previous?.quantity ?? 0n)+BigInt(line.quantity)});groups.set(key,section);
+  const section=sections.get(key) ?? {line,lines:[]};section.lines.push(line);sections.set(key,section);
  }
- const sections=[...groups.entries()].sort(([ka,a],[kb,b])=>compare(a.line.styleName,b.line.styleName)||compare(a.line.artworkSetName,b.line.artworkSetName)||compare(ka,kb));
- for(const [,section] of sections) {
+ const sorted=[...sections.entries()].sort(([ka,a],[kb,b])=>compare(a.line.styleName,b.line.styleName)||compare(a.line.artworkSetName,b.line.artworkSetName)||compare(ka,kb));
+ for(const [,section] of sorted) {
   if(rows.length>1)rows.push([]);
-  const members=[...section.members.values()].sort((a,b)=>compare(a.name,b.name)||variantCompare(a.line,b.line));
-  members.forEach(({name,line,quantity},index)=>rows.push([index===0 ? section.line.styleName : "",index===0 ? section.line.artworkSetName : "",line.colorName,line.sizeLabel,quantity.toString(),name,""]));
+  sortedGroups(section.lines).forEach(({line,quantity},index)=>rows.push([index===0 ? section.line.styleName : "",index===0 ? section.line.artworkSetName : "",line.colorName,line.sizeLabel,quantity.toString(),""]));
  }
  return rows;
 }
 export function manufacturerRows(orders: OrderView[]): string[][] {
- return [["Item","Artwork set","Color","Size","Total","Ordered?"], ...sortedGroups(orders.filter(o=>!o.cancelled).flatMap(o=>o.lines)).map(({line,quantity})=>[line.styleName,line.artworkSetName,line.colorName,line.sizeLabel,quantity.toString(),""])];
+ const rows:string[][]=[["Item","Artwork set","Color","Size","Total","Ordered?"]];
+ const sections=new Map<string,{line:OrderLineView;lines:OrderLineView[]}>();
+ for(const order of sortedOrders(orders)) for(const line of order.lines) {
+  const key=JSON.stringify([line.styleId,line.styleName]),section=sections.get(key) ?? {line,lines:[]};
+  section.lines.push(line);sections.set(key,section);
+ }
+ const sorted=[...sections.entries()].sort(([ka,a],[kb,b])=>compare(a.line.styleName,b.line.styleName)||compare(ka,kb));
+ for(const [,section] of sorted) {
+  if(rows.length>1)rows.push([]);
+  [...group(section.lines).values()].sort((a,b)=>productVariantCompare(a.line,b.line)).forEach(({line,quantity},index)=>rows.push([index===0 ? section.line.styleName : "",line.artworkSetName,line.colorName,line.sizeLabel,quantity.toString(),""]));
+ }
+ return rows;
 }
 export function csvEncode(rows: string[][]): Uint8Array {
  const cell = (value: string) => { const safe = /^[\t\r]|^\s*[=+\-@]/.test(value) ? `'${value}` : value; return `"${safe.replaceAll('"','""')}"`; };

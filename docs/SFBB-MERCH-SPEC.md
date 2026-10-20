@@ -319,10 +319,10 @@ Group by exact customer name and combine matching variants across that customer'
 ### Fulfillment by product CSV
 
 ```text
-Item,Artwork set,Color,Size,Quantity,Name,Fulfilled
+Item,Artwork set,Color,Size,Quantity,Fulfilled
 ```
 
-A member-delivery view grouped by shirt item and artwork set, rather than by name or individual color/size variant. Keep all colors and sizes of that item/artwork pair in one section. List customers within each section with their ordered color, size and combined matching-variant quantities. Print Item and Artwork set only on the first row of the section and put a blank separator between sections. Fulfilled remains blank. Include delivered/Complete orders and exclude cancellations. Stable style/set IDs and ordered names distinguish sections; full variant/swatch identity distinguishes rows. Sort sections by item/artwork names and stable identity, then customers by exact name and variants by color/size. Use the `fulfillment-by-product` filename suffix.
+Group by shirt item and artwork set, retaining all colors and sizes of each pair in one section. Combine matching variant quantities across members and orders; omit member names. Print Item and Artwork set only on the first row of each section, with a blank separator between sections. Sort sections by item/artwork names and stable identity, then rows by color and clothing size from smallest to largest. Fulfilled remains blank. Include delivered/Complete orders and exclude cancellations. Stable style/set IDs and ordered names distinguish sections; full variant/swatch identity distinguishes rows. Use the `fulfillment-by-product` filename suffix.
 
 ### T-shirt ordering CSV
 
@@ -330,13 +330,13 @@ A member-delivery view grouped by shirt item and artwork set, rather than by nam
 Item,Artwork set,Color,Size,Total,Ordered?
 ```
 
-Combine matching variants across all non-cancelled orders regardless of progress. Print one row per variant, with Ordered? blank. This remains the `manufacturer-order` endpoint/filename suffix.
+Combine matching variants across all non-cancelled orders regardless of progress. Group by item (stable style ID and ordered name), with the item name only on the first row and a blank separator between items. Within each item, sort by artwork set, color, then clothing size from smallest to largest. Print one row per variant, with Ordered? blank. This remains the `manufacturer-order` endpoint/filename suffix.
 
 ### Product labels, identities, and sorting
 
-Item, Artwork set and Color are separate columns in both fulfillment exports and the T-shirt ordering export. Product fulfillment puts Color third, Size fourth, Quantity fifth, Name sixth and Fulfilled seventh. Use ordered snapshots, never current renamed colors or changed prices. Matching variants retain stable style/set/color/size identities and ordered names/swatches. Unit price does not split fulfillment/purchasing variants. Different styles or historical swatches remain separate even if visible labels coincide.
+Item, Artwork set and Color are separate columns in both fulfillment exports and the T-shirt ordering export. Product fulfillment puts Color third, Size fourth, Quantity fifth and Fulfilled sixth. Use ordered snapshots, never current renamed colors or changed prices. Matching variants retain stable style/set/color/size identities and ordered names/swatches. Unit price does not split fulfillment/purchasing variants. Different styles or historical swatches remain separate even if visible labels coincide.
 
-Sort customers by exact name and variants by style name, color name, artwork-set name, then standard clothing size order (XXXS through 6XL; 2X/XXL aliases sort with 2XL and 3X/XXXL with 3XL). Unknown size labels follow standard sizes in deterministic lexical order. Stable identity breaks display ties. Preserve existing per-order identities in the application; name grouping applies only to fulfillment exports. Do not merge different spellings/case variants of customer names.
+For member fulfillment, sort customers by exact name and variants by style name, color name, artwork-set name, then standard clothing size order (XXXS through 6XL; 2X/XXL aliases sort with 2XL and 3X/XXXL with 3XL). Unknown size labels follow standard sizes in deterministic lexical order. Stable identity breaks display ties. Preserve existing per-order identities in the application; name grouping applies only to the member fulfillment export. Do not merge different spellings/case variants of customer names.
 
 ### CSV encoding and safety
 
