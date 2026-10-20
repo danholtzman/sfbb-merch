@@ -1,6 +1,18 @@
+import sharp from "sharp";
 import { test, expect } from "@playwright/test";
 import { memberFixture, memberLogin, addShirt } from "./member-setup";
 test.describe("member ordering", { tag: "@member-ui" }, () => {
+ test("back view requires a back shirt photo for the selected color, rather than back artwork alone",async({page,request})=>{
+  const fixture=await memberFixture(request);
+  const before=(await(await request.get(`/api/admin/seasons/${fixture.season.id}/catalog`)).json()).data;
+  const updated=await request.patch(`/api/admin/styles/${fixture.style.id}/colors`,{headers:fixture.headers,data:{expectedVersion:before.styles[0].version,colors:[{id:fixture.style.colors[0].id,name:"Blue",hex:"#1247ED"},{name:"Black",hex:"#000000"}]}});expect(updated.ok()).toBe(true);const style=(await updated.json()).data;
+  const png=await sharp({create:{width:40,height:60,channels:4,background:"blue"}}).png().toBuffer();
+  expect((await request.post(`/api/admin/styles/${style.id}/blank-photos/back`,{headers:fixture.headers,multipart:{file:{name:"back.png",mimeType:"image/png",buffer:png},expectedVersion:String(style.version),colorId:style.colors[0].id}})).ok()).toBe(true);
+  await memberLogin(page);const card=page.getByRole("article").first();
+  await expect(card.getByRole("button",{name:"Back",exact:true})).toBeVisible();await card.getByRole("button",{name:"Back",exact:true}).click();await expect(card.getByRole("img",{name:/back in Blue/})).toBeVisible();
+  await card.getByRole("button",{name:"Black",exact:true}).click();await expect(card.getByRole("button",{name:"Back",exact:true})).toHaveCount(0);await expect(card.getByRole("img",{name:/front in Black/})).toBeVisible();
+  await card.getByRole("button",{name:"Blue",exact:true}).click();await expect(card.getByRole("button",{name:"Back",exact:true})).toBeVisible();
+ });
  test("product previews align their details and controls despite different content",async({page,request,isMobile},info)=>{
   test.skip(isMobile,"Alignment compares cards side by side on desktop");const fixture=await memberFixture(request);
   const extra=await request.post(`/api/admin/seasons/${fixture.season.id}/artwork-sets`,{headers:fixture.headers,data:{name:"Alternate artwork"}});expect(extra.ok()).toBe(true);const extraSet=(await extra.json()).data;

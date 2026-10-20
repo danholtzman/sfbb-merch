@@ -36,15 +36,19 @@ test("paired uploads and color-specific blanks persist through reload, and new s
  for(const side of ["front","back"]) {await dialog.getByLabel(`Upload ${side} artwork`).setInputFiles({name:`${side}.png`,mimeType:"image/png",buffer:png});await expect(dialog.getByRole("img",{name:`${side === "front" ? "Front" : "Back"} artwork preview`})).toBeVisible();}
  await dialog.getByRole("button", { name: "Done", exact: true }).click();
  const first = page.getByRole("article").first();
- await expect(first.locator('svg image[data-artwork="true"]')).toHaveCount(2);
+ await expect(first.locator('svg image[data-artwork="true"]')).toHaveCount(1);
+ await expect(first.getByRole("button",{name:"Edit back preview for Browser test tee",exact:true})).toHaveCount(0);
  await first.getByRole("button", { name: "Manage style", exact: true }).click();
  await dialog.getByLabel("Upload blank front photo").setInputFiles({ name: "blank.png", mimeType: "image/png", buffer: png });
  await expect(dialog.getByText("Front blank photo saved", { exact: true })).toBeVisible();
+ await dialog.getByLabel("Upload blank back photo").setInputFiles({name:"back-shirt.png",mimeType:"image/png",buffer:png});
+ await expect(dialog.getByText("Back blank photo saved",{exact:true})).toBeVisible();
  await dialog.getByRole("button", { name: "Done", exact: true }).click();
  await page.reload();
  await page.getByLabel("Switch season").selectOption(copy.id);
  await page.getByRole("tab", { name: "Merchandise", exact: true }).click();
- await expect(first.locator('svg image[data-blank="true"]')).toHaveCount(1);
+ await expect(first.locator('svg image[data-blank="true"]')).toHaveCount(2);
+ await expect(first.getByRole("button",{name:"Edit back preview for Browser test tee",exact:true})).toBeVisible();
  await page.getByRole("button", { name: "Manage artwork", exact: true }).click();
  await dialog.getByText("Additional artwork sets (optional)", { exact: true }).click();
  await dialog.getByLabel("New set name").fill("Browser additional set");

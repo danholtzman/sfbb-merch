@@ -24,6 +24,7 @@ export function Shop({ initial }: { initial: ShopData }) {
 function Product({ style, data }: { style: StyleView; data: ShopData }) {
  const bag = useBag(); const [colorId, setColorId] = useState(style.colors[0]?.id ?? ""), [setId, setSetId] = useState(style.artworkSetIds[0] ?? ""), [sizeId, setSizeId] = useState(""), [quantity, setQuantity] = useState("1"), [side, setSide] = useState<Side>("front"), [error, setError] = useState(""), [message, setMessage] = useState("");
  const color = style.colors.find(c => c.id === colorId) ?? style.colors[0], set = data.artworkSets.find(s => s.id === (style.artworkSetIds.includes(setId) ? setId : style.artworkSetIds[0]));
+ const hasBack=!!color && !!style.backPhotoColorIds?.includes(color.id), previewSide=side === "back" && hasBack ? "back" : "front";
  function add() {
   setError(""); setMessage(""); const size = style.sizes.find(s => s.id === sizeId), qty = Number(quantity);
   if (!size) { setError("Select your size before adding this shirt."); return; }
@@ -33,7 +34,7 @@ function Product({ style, data }: { style: StyleView; data: ShopData }) {
   catch (e) { setError((e as Error).message); }
  }
  return <article className="product" aria-label={style.name}>
-  <div className="product-image">{color && set && <CompositePreview styleId={style.id} setId={set.id} colorId={color.id} side={side} revision={data.season?.version ?? 0} label={`${style.name} ${side} in ${color.name}`} />}<div className="shirt-view-toggle" aria-label="Shirt view">{(["front","back"] as const).map(s => <button key={s} aria-pressed={side === s} onClick={() => setSide(s)}>{s === "front" ? "Front" : "Back"}</button>)}</div></div>
+  <div className="product-image">{color && set && <CompositePreview styleId={style.id} setId={set.id} colorId={color.id} side={previewSide} revision={data.season?.version ?? 0} label={`${style.name} ${previewSide} in ${color.name}`} />}<div className="shirt-view-toggle" aria-label="Shirt view">{(hasBack ? ["front","back"] as const : ["front"] as const).map(s => <button key={s} aria-pressed={previewSide === s} onClick={() => setSide(s)}>{s === "front" ? "Front" : "Back"}</button>)}</div></div>
   <div className="product-head"><h3>{style.name}</h3><strong>{formatUsd(style.unitPriceCents)}</strong></div><div className="product-details"><p>{style.description}</p>{style.manufacturerUrl && <p><a href={style.manufacturerUrl} target="_blank" rel="noopener noreferrer">View manufacturer details ↗</a></p>}</div>
   <div className="color-row" role="group" aria-label="Color">{style.colors.map(c => <button key={c.id} className="swatch" style={{ backgroundColor: c.hex }} aria-label={c.name} aria-pressed={color?.id === c.id} onClick={() => setColorId(c.id)} />)}<span>{color?.name}</span></div>
   <div className="product-artwork">{style.artworkSetIds.length > 1 && <label className="product-design">Artwork set<select value={set?.id ?? ""} onChange={e => setSetId(e.target.value)}>{style.artworkSetIds.map(id => <option key={id} value={id}>{data.artworkSets.find(s => s.id === id)?.name}</option>)}</select></label>}</div>

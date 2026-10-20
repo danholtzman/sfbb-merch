@@ -18,6 +18,7 @@ test("creates a custom style, manages immediate price and explicitly saved color
  await dialog.getByLabel("Manufacturer URL (optional)", { exact: true }).fill("https://example.com/youth-tee");
  await dialog.getByLabel("Price ($)", { exact: true }).fill("0");
  await dialog.getByLabel("Available sizes", { exact: true }).fill("Youth S, 4XL, Youth S");
+ await expect(dialog.getByText("BACK (optional)",{exact:true})).toBeVisible();
  const photo=await sharp({create:{width:40,height:60,channels:4,background:"blue"}}).png().toBuffer();
  await expect(dialog.getByRole("heading",{name:"Available artwork sets",exact:true})).toBeVisible();
  await dialog.getByLabel("Upload blank front photo",{exact:true}).setInputFiles({name:"front.png",mimeType:"image/png",buffer:photo});

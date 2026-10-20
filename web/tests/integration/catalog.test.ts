@@ -123,3 +123,11 @@ it("creates selected artwork availability and per-color photos together, rejecti
  for(const invalid of [{...raw,artworkSetIds:[]},{...raw,artworkSetIds:[other.artwork.id]},{...raw,artworkSetIds:[c.artwork.id,c.artwork.id]},{...raw,blankPhotos:[{...raw.blankPhotos[0],colorPosition:1}]},{...raw,blankPhotos:[{...raw.blankPhotos[0],assetId:randomUUID()}]},{...raw,blankPhotos:[...raw.blankPhotos,...raw.blankPhotos]}]) await expect(service.createStyle(ctx,c.season.id,invalid)).rejects.toMatchObject({status:422});
  expect(await database.client.merchandiseStyle.count()).toBe(count);
 });
+it("returns back-photo availability after creating a style with optional per-color photos",async()=>{
+ const c=await seedCatalog(database.client),asset=await database.client.asset.create({data:{mime:"image/png",width:40,height:60,byteSize:1024,storageKey:randomUUID(),sha256:"a".repeat(64)}});
+ const frontOnly=await service.createStyle(ctx,c.season.id,{...input,blankPhotos:[{colorPosition:0,side:"front",assetId:asset.id}]});
+ expect(frontOnly.backPhotoColorIds).toEqual([]);
+ const both=await service.createStyle(ctx,c.season.id,{...input,blankPhotos:[{colorPosition:0,side:"back",assetId:asset.id}]});
+ expect(both.backPhotoColorIds).toEqual([both.colors[0].id]);
+ expect((await service.getCatalog(ctx,c.season.id)).styles.find(s=>s.id===both.id)?.backPhotoColorIds).toEqual([both.colors[0].id]);
+});

@@ -45,3 +45,17 @@ it("includes manufacturer links in the member catalog", async () => {
  await database.client.season.update({ where: { id: catalog.season.id }, data: { lifecycle: "PUBLISHED" } });
  expect((await data.shop(ctx)).styles[0]).toMatchObject({ manufacturerUrl: "https://example.com/tee" });
 });
+it("offers back previews only for colors with an actual back shirt photo, including shared fallback",async()=>{
+ const other=await database.client.styleColor.create({data:{styleId:catalog.style.id,name:"Black",normalizedName:"black",hex:"#000000",position:1}});
+ const asset=await database.client.asset.create({data:{mime:"image/png",width:40,height:60,byteSize:1024,storageKey:randomUUID(),sha256:"a".repeat(64)}});
+ await database.client.artworkSet.update({where:{id:catalog.artwork.id},data:{backAssetId:asset.id}});
+ const actor={...ctx,actor:{...ctx.actor,role:"admin" as const}};
+ const read=async()=> (await data.shop(actor,catalog.season.id)).styles[0].backPhotoColorIds;
+ expect(await read()).toEqual([]);
+ await database.client.blankPhoto.create({data:{styleId:catalog.style.id,colorId:catalog.color.id,scopeKey:catalog.color.id,side:"front",assetId:asset.id}});
+ expect(await read()).toEqual([]);
+ await database.client.blankPhoto.create({data:{styleId:catalog.style.id,colorId:other.id,scopeKey:other.id,side:"back",assetId:asset.id}});
+ expect(await read()).toEqual([other.id]);
+ await database.client.blankPhoto.create({data:{styleId:catalog.style.id,scopeKey:"all",side:"back",assetId:asset.id}});
+ expect(await read()).toEqual([catalog.color.id,other.id]);
+});

@@ -194,6 +194,8 @@ Delete artwork set opens a confirmation removing both files and this set's saved
 
 Both Add shirt style and Manage style contain **Blank shirt photos** with a color selector and separate **Upload blank front photo** and **Upload blank back photo** controls. These photos must be unprinted shirts. Explain that season artwork is applied separately.
 
+Back shirt photos are optional in Add shirt style and Manage style. Only show a Back shop view, admin back preview, or Back placement-editor option when the selected style/color has an uploaded back shirt photo, including a shared photo fallback. Back artwork alone must not expose a synthetic back view. Switching to a color without a back photo returns the preview to Front. Keep the back-photo upload control available so an admin can add it later.
+
 Blank photos are specific to shirt style, color, and side. Uploading a front photo never overwrites the back or another color. Show uploaded thumbnails or a labelled sample-blank fallback. There is no style selector inside a style-specific modal.
 
 Artwork accepts PNG; blank photos accept PNG or JPEG. The mockup's limit is 8 MB per uploaded file. Validate type, actual decoded image content, size, and safe server paths in production. Store assets durably on the Pi; do not depend on browser data URLs.

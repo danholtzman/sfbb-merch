@@ -7,12 +7,13 @@ import { AppError } from "../../domain/errors";
 import { centsSchema, idSchema, versionSchema, normalizedName } from "../../domain/schemas";
 import { validateSeasonReadiness } from "../seasons/service";
 import { colorsSchema, createStyleSchema, styleDetailsSchema, parseCatalog, uniqueSizes, validateColorNames, type ColorInput, type CreateStyleInput } from "./colors";
-const include = { colors: { orderBy: { position: "asc" } }, sizes: { orderBy: { position: "asc" } }, artworkSets: { orderBy: { position: "asc" } }, orderLines: { select: { colorId: true } } } as const;
+import { backPhotoColorIds } from "../artwork/photo-sides";
+const include = { colors: { orderBy: { position: "asc" } }, sizes: { orderBy: { position: "asc" } }, artworkSets: { orderBy: { position: "asc" } }, orderLines: { select: { colorId: true } }, blankPhotos: { select: { side: true, colorId: true } } } as const;
 type LoadedStyle = Prisma.MerchandiseStyleGetPayload<{ include: typeof include }>;
 export type CatalogStyle = StyleView & { orderedColorIds: string[]; removedColorIds?: string[]; removedSetIds?: string[] };
 export type CatalogSnapshot = { styles: CatalogStyle[]; artworkSets: ArtworkSetView[] };
 function view(style: LoadedStyle): CatalogStyle {
- return { id: style.id, seasonId: style.seasonId, name: style.name, description: style.description, manufacturerUrl: style.manufacturerUrl, unitPriceCents: style.unitPriceCents, cut: style.cut, version: style.version, colors: style.colors.map(c => ({ id: c.id, name: c.name, hex: c.hex, position: c.position })), sizes: style.sizes.map(s => ({ id: s.id, label: s.label, position: s.position })), artworkSetIds: style.artworkSets.map(s => s.artworkSetId), orderedColorIds: [...new Set(style.orderLines.map(l => l.colorId))] };
+ return { id: style.id, seasonId: style.seasonId, name: style.name, description: style.description, manufacturerUrl: style.manufacturerUrl, unitPriceCents: style.unitPriceCents, cut: style.cut, version: style.version, colors: style.colors.map(c => ({ id: c.id, name: c.name, hex: c.hex, position: c.position })), sizes: style.sizes.map(s => ({ id: s.id, label: s.label, position: s.position })), artworkSetIds: style.artworkSets.map(s => s.artworkSetId), backPhotoColorIds: backPhotoColorIds(style.colors,style.blankPhotos), orderedColorIds: [...new Set(style.orderLines.map(l => l.colorId))] };
 }
 function admin(ctx: RequestContext) { if (ctx.actor.role !== "admin") throw new AppError("FORBIDDEN", 403, "Administrator access is required."); }
 async function season(tx: DbTransaction, id: string) {
@@ -71,7 +72,7 @@ export function createCatalogService(client: PrismaClient = db) {
     }
     if (parent.lifecycle === "PUBLISHED") await validateSeasonReadiness(tx, seasonId);
     await tx.season.update({ where: { id: seasonId }, data: { version: { increment: 1 } } });
-    return view(style);
+    return view(await tx.merchandiseStyle.findUniqueOrThrow({where:{id:style.id},include}));
    }, client);
   },
   async updateStyleDetails(ctx: RequestContext, id: string, version: number, raw: unknown): Promise<CatalogStyle> {
