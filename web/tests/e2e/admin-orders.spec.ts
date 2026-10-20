@@ -53,6 +53,22 @@ test.describe("admin order management", { tag: "@admin-orders" }, () => {
   }
   await page.screenshot({path:info.outputPath("admin-orders.png"),fullPage:true});
  });
+ test("CSV buttons retain their labels, dimensions and opacity while a download is pending", async ({page,request})=>{
+  await memberFixture(request);
+  await page.goto("/login"); await page.getByLabel("Username",{exact:true}).fill("admin"); await page.getByLabel("Password",{exact:true}).fill(credentials.adminPassword); await page.getByRole("button",{name:/Sign in/}).click(); await expect(page).toHaveURL(/\/admin$/);
+  const buttons=page.locator(".order-exports button"), billing=page.getByRole("button",{name:"↓ Billing CSV",exact:true});
+  await expect(billing).toBeEnabled();
+  const appearance=()=>buttons.evaluateAll(elements=>elements.map(element=>{const bounds=element.getBoundingClientRect(),css=getComputedStyle(element);return {label:element.textContent,width:bounds.width,height:bounds.height,opacity:css.opacity};}));
+  const before=await appearance();
+  let release!:()=>void;const pending=new Promise<void>(resolve=>{release=resolve;});
+  await page.route("**/api/admin/reports/billing?*",async route=>{await pending;await route.continue();});
+  const download=page.waitForEvent("download");await billing.click();
+  try {
+   await expect(billing).toBeDisabled();
+   expect(await appearance()).toEqual(before);
+  } finally {release();}
+  await download;await expect(billing).toBeEnabled();expect(await appearance()).toEqual(before);
+ });
  test("admin edits work after closing, discard preserves data, and conflicts preserve unsaved editor input", async ({ page, request }) => {
   const fixture = await memberFixture(request); const payload = { seasonId: fixture.season.id, fullName: "Closed Member", note: "Original", lines: [{styleId:fixture.style.id,artworkSetId:fixture.set.id,colorId:fixture.style.colors[0].id,sizeId:fixture.style.sizes[0].id,quantity:1}] };
   const submitted=await request.post("/api/orders",{headers:{...fixture.headers,"Idempotency-Key":randomUUID()},data:payload}); expect(submitted.status()).toBe(200); const order=(await submitted.json()).data;
