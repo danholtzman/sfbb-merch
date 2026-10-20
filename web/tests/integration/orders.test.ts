@@ -185,3 +185,11 @@ it("rejects malformed recipients before creating an order and accepts blank emai
  const key = randomUUID(), order = await service.submitOrder(member, input(), key);
  expect((await service.submitOrder(member, { ...input(), confirmationEmail: " " }, key)).id).toBe(order.id);
 });
+
+it("accepts checkout and member edits with front-only artwork and no blank photos", async () => {
+ await database.client.artworkSet.update({ where: { id: catalog.artwork.id }, data: { backAssetId: null } });
+ const order = await submit();
+ expect(order).toMatchObject({ amountOwedCents: 5020 });
+ const edited = await service.editMemberOrder(member, order.code, order.version, { fullName: order.fullName, note: order.note, lines: [{ ...line(), quantity: 3 }] });
+ expect(edited).toMatchObject({ amountOwedCents: 7530 });
+});

@@ -39,3 +39,9 @@ it("lookup presentation preserves ordered swatch and removed set association and
  expect((await data.present({ ...ctx, now: new Date("2026-11-02") }, order)).canEdit).toBe(false);
  expect((await data.present(ctx, { ...order, progress: "DELIVERED_UNPAID" })).canEdit).toBe(false);
 });
+
+it("includes manufacturer links in the member catalog", async () => {
+ await database.client.merchandiseStyle.update({ where: { id: catalog.style.id }, data: { manufacturerUrl: "https://example.com/tee" } });
+ await database.client.season.update({ where: { id: catalog.season.id }, data: { lifecycle: "PUBLISHED" } });
+ expect((await data.shop(ctx)).styles[0]).toMatchObject({ manufacturerUrl: "https://example.com/tee" });
+});

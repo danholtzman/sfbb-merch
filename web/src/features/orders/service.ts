@@ -37,7 +37,7 @@ function memberMayChange(ctx: RequestContext, order: LoadedOrder, now: Date) {
 async function newLine(tx: DbTransaction, seasonId: string, input: OrderLineInput): Promise<Prepared> {
  const style = await tx.merchandiseStyle.findFirst({ where: { id: input.styleId, seasonId }, include: { colors: true, sizes: true, artworkSets: { include: { artworkSet: { include: { frontAsset: true, backAsset: true } } } } } });
  const color = style?.colors.find(c => c.id === input.colorId), size = style?.sizes.find(s => s.id === input.sizeId), set = style?.artworkSets.find(s => s.artworkSetId === input.artworkSetId)?.artworkSet;
- if (!style || !color || !size || !set || set.seasonId !== seasonId || set.frontAsset?.mime !== "image/png" || set.backAsset?.mime !== "image/png") throw new AppError("INVALID_VARIANT", 422, "A selected shirt variant is no longer available in this season. Refresh your bag.");
+ if (!style || !color || !size || !set || set.seasonId !== seasonId || set.frontAsset?.mime !== "image/png" || (set.backAssetId !== null && set.backAsset?.mime !== "image/png")) throw new AppError("INVALID_VARIANT", 422, "A selected shirt variant is no longer available in this season. Refresh your bag.");
  return { ...input, unitPriceCents: style.unitPriceCents, styleName: style.name, artworkSetName: set.name, colorName: color.name, colorHex: color.hex, sizeLabel: size.label };
 }
 export function createOrderService(client: PrismaClient = db, options: { generateCode?: () => string; now?: () => Date; address?: string } = {}) {

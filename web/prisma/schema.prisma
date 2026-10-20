@@ -58,6 +58,7 @@ model MerchandiseStyle {
   season         Season            @relation(fields: [seasonId], references: [id], onDelete: Cascade)
   name           String
   description    String
+  manufacturerUrl String           @default("")
   unitPriceCents Int
   cut            Cut
   position       Int               @default(0)

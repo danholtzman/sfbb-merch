@@ -41,13 +41,13 @@ describe("season mutations", () => {
     await expect(service.createSeason(ctx, { ...input, closesOn: "2027-02-01" })).rejects.toMatchObject({ status: 422 });
     await expect(service.createSeason({ ...ctx, actor: { ...ctx.actor, role: "member" } }, input)).rejects.toMatchObject({ status: 403 });
   });
-  it("refuses an empty catalog and reports every missing offered PNG side", async () => {
+  it("refuses an empty catalog and reports every missing offered front PNG", async () => {
     const s = await service.createSeason(ctx, input);
     await expect(service.publishSeason(ctx, s.id, 1)).rejects.toMatchObject({ status: 422 });
     const c = await seedCatalog(database.client);
     const extra = await database.client.artworkSet.create({ data: { seasonId: c.season.id, name: "Encore", normalizedName: "encore" } });
     await database.client.styleArtworkSet.create({ data: { styleId: c.style.id, artworkSetId: extra.id, position: 1 } });
-    await expect(service.publishSeason(ctx, c.season.id, 1)).rejects.toMatchObject({ fields: expect.objectContaining({ [`${c.artwork.id}.front`]: expect.any(String), [`${c.artwork.id}.back`]: expect.any(String), [`${extra.id}.front`]: expect.any(String), [`${extra.id}.back`]: expect.any(String) }) });
+    await expect(service.publishSeason(ctx, c.season.id, 1)).rejects.toMatchObject({ fields: expect.objectContaining({ [`${c.artwork.id}.front`]: expect.any(String), [`${extra.id}.front`]: expect.any(String) }) });
   });
   it("publishes without blank photos, ignoring unassigned incomplete sets; JPEG artwork blocks", async () => {
     const c = await ready();
@@ -77,6 +77,7 @@ describe("season mutations", () => {
   });
   it("copies definitions/photos with new IDs, fresh artwork by default; explicit reuse maps placements without orders", async () => {
     const c = await ready();
+    await database.client.merchandiseStyle.update({ where: { id: c.style.id }, data: { manufacturerUrl: "https://example.com/tee" } });
     await database.client.blankPhoto.create({ data: { styleId: c.style.id, colorId: c.color.id, scopeKey: c.color.id, side: "back", assetId: c.asset.id } });
     await database.client.placement.create({ data: { styleId: c.style.id, artworkSetId: c.artwork.id, colorId: c.color.id, scopeKey: c.color.id, side: "back", x: 50, y: 40, width: 30, rotation: 5 } });
     await database.client.order.create({ data: { seasonId: c.season.id, fullName: "Test", code: "ABC123", lines: { create: lineData(c) } } });
@@ -84,7 +85,7 @@ describe("season mutations", () => {
       const copy = await service.createSeason(ctx, { ...input, copyFromSeasonId: c.season.id, reuseArtwork });
       const style = await database.client.merchandiseStyle.findFirstOrThrow({ where: { seasonId: copy.id }, include: { colors: true, sizes: true, blankPhotos: true, placements: true, artworkSets: { include: { artworkSet: true } } } });
       expect(style.id).not.toBe(c.style.id);
-      expect(style).toMatchObject({ name: c.style.name, unitPriceCents: 2510, cut: "classic" });
+      expect(style).toMatchObject({ name: c.style.name, manufacturerUrl: "https://example.com/tee", unitPriceCents: 2510, cut: "classic" });
       expect(style.colors[0].id).not.toBe(c.color.id);
       expect(style.sizes[0].id).not.toBe(c.size.id);
       expect(style.blankPhotos[0]).toMatchObject({ assetId: c.asset.id, colorId: style.colors[0].id, scopeKey: style.colors[0].id });
@@ -106,4 +107,10 @@ describe("season mutations", () => {
     expect(await database.client.asset.count()).toBe(1);
     expect(await database.client.orderLine.count()).toBe(1);
   });
+});
+
+it("publishes with front artwork and no back artwork or blank shirt photos", async () => {
+ const c = await ready();
+ await database.client.artworkSet.update({ where: { id: c.artwork.id }, data: { backAssetId: null } });
+ expect(await service.publishSeason(ctx, c.season.id, 1)).toMatchObject({ lifecycle: "PUBLISHED" });
 });

@@ -3,7 +3,9 @@ import { normalizedName, idSchema, centsSchema } from "../../domain/schemas";
 import { AppError } from "../../domain/errors";
 export const colorSchema = z.strictObject({ id: idSchema.optional(), name: z.string().trim().min(1).max(40), hex: z.string().regex(/^#[0-9a-fA-F]{6}$/).transform(s => s.toUpperCase()) });
 export const colorsSchema = z.array(colorSchema).min(1).max(100);
-export const createStyleSchema = z.strictObject({ name: z.string().trim().min(1).max(60), description: z.string().trim().max(160), unitPriceCents: centsSchema, cut: z.enum(["classic", "fitted", "long"]), colors: z.array(colorSchema.omit({ id: true })).min(1).max(100), sizes: z.array(z.string().trim().min(1).max(40)).min(1).max(100), templateStyleId: idSchema.optional() });
+export const manufacturerUrlSchema = z.string().trim().max(2048).refine(value => { if (!value) return true; try { return ["https:", "http:"].includes(new URL(value).protocol); } catch { return false; } }, "Enter a valid HTTP or HTTPS URL.");
+export const styleDetailsSchema = z.strictObject({ description: z.string().trim().max(160), manufacturerUrl: manufacturerUrlSchema });
+export const createStyleSchema = z.strictObject({ name: z.string().trim().min(1).max(60), description: z.string().trim().max(160), manufacturerUrl: manufacturerUrlSchema.default(""), unitPriceCents: centsSchema, cut: z.enum(["classic", "fitted", "long"]), colors: z.array(colorSchema.omit({ id: true })).min(1).max(100), sizes: z.array(z.string().trim().min(1).max(40)).min(1).max(100), templateStyleId: idSchema.optional() });
 export type CreateStyleInput = z.input<typeof createStyleSchema>;
 export type ColorInput = z.input<typeof colorSchema>;
 export function parseCatalog<T>(schema: z.ZodType<T>, raw: unknown): T {

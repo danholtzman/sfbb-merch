@@ -91,3 +91,11 @@ test.describe("without JavaScript", () => {
     expect(submitted.url()).not.toContain("password");
   });
 });
+
+for (const field of ["Username", "Password"]) test(`Enter in ${field} submits login`, async ({ page }) => {
+ await page.goto("/login");
+ await page.getByLabel("Username", { exact: true }).fill("user");
+ await page.getByLabel("Password", { exact: true }).fill(credentials.memberPassword);
+ await page.getByLabel(field, { exact: true }).press("Enter");
+ await expect(page).toHaveURL(/\/shop$/);
+});

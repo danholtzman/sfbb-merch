@@ -14,10 +14,15 @@ test("creates a custom style, manages immediate price and explicitly saved color
  const dialog = page.getByRole("dialog");
  await dialog.getByLabel("Style name", { exact: true }).fill("Youth browser tee");
  await dialog.getByLabel("Description", { exact: true }).fill("Lightweight cotton");
+ await dialog.getByLabel("Manufacturer URL (optional)", { exact: true }).fill("https://example.com/youth-tee");
  await dialog.getByLabel("Price ($)", { exact: true }).fill("0");
  await dialog.getByLabel("Available sizes", { exact: true }).fill("Youth S, 4XL, Youth S");
  await dialog.getByRole("button", { name: "Add shirt style", exact: true }).click();
  await expect(dialog.getByRole("heading", { name: "Manage Youth browser tee" })).toBeVisible();
+ await expect(dialog.getByLabel("Manufacturer URL (optional)", { exact: true })).toHaveValue("https://example.com/youth-tee");
+ await dialog.getByLabel("Manufacturer URL (optional)", { exact: true }).fill("https://example.com/updated-tee");
+ await dialog.getByRole("button", { name: "Save style details", exact: true }).click();
+ await expect(dialog.getByText("Style details saved", { exact: true })).toBeVisible();
  await dialog.getByLabel("Season artwork", { exact: true }).click();
  await expect(dialog.getByText("Artwork availability saved", { exact: true })).toBeVisible();
  await dialog.getByLabel("Encore", { exact: true }).click();
@@ -35,6 +40,7 @@ test("creates a custom style, manages immediate price and explicitly saved color
  await page.screenshot({ path: info.outputPath("manage-style.png"), fullPage: true });
  await dialog.getByRole("button", { name: "Done", exact: true }).click();
  await expect(section).toContainText("$27.50");
+ await expect(section.getByRole("link", { name: "View manufacturer details" })).toHaveAttribute("href", "https://example.com/updated-tee");
  await expect(section).toContainText("Youth S · 4XL");
  await expect(section.getByLabel("Preview color")).toHaveValue(/.+/);
  await section.getByRole("button", { name: "Manage style", exact: true }).click();

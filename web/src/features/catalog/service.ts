@@ -6,13 +6,13 @@ import { db, withTransaction, assertVersionWrite, type DbTransaction } from "../
 import { AppError } from "../../domain/errors";
 import { centsSchema, idSchema, versionSchema, normalizedName } from "../../domain/schemas";
 import { validateSeasonReadiness } from "../seasons/service";
-import { colorsSchema, createStyleSchema, parseCatalog, uniqueSizes, validateColorNames, type ColorInput, type CreateStyleInput } from "./colors";
+import { colorsSchema, createStyleSchema, styleDetailsSchema, parseCatalog, uniqueSizes, validateColorNames, type ColorInput, type CreateStyleInput } from "./colors";
 const include = { colors: { orderBy: { position: "asc" } }, sizes: { orderBy: { position: "asc" } }, artworkSets: { orderBy: { position: "asc" } }, orderLines: { select: { colorId: true } } } as const;
 type LoadedStyle = Prisma.MerchandiseStyleGetPayload<{ include: typeof include }>;
 export type CatalogStyle = StyleView & { orderedColorIds: string[]; removedColorIds?: string[]; removedSetIds?: string[] };
 export type CatalogSnapshot = { styles: CatalogStyle[]; artworkSets: ArtworkSetView[] };
 function view(style: LoadedStyle): CatalogStyle {
- return { id: style.id, seasonId: style.seasonId, name: style.name, description: style.description, unitPriceCents: style.unitPriceCents, cut: style.cut, version: style.version, colors: style.colors.map(c => ({ id: c.id, name: c.name, hex: c.hex, position: c.position })), sizes: style.sizes.map(s => ({ id: s.id, label: s.label, position: s.position })), artworkSetIds: style.artworkSets.map(s => s.artworkSetId), orderedColorIds: [...new Set(style.orderLines.map(l => l.colorId))] };
+ return { id: style.id, seasonId: style.seasonId, name: style.name, description: style.description, manufacturerUrl: style.manufacturerUrl, unitPriceCents: style.unitPriceCents, cut: style.cut, version: style.version, colors: style.colors.map(c => ({ id: c.id, name: c.name, hex: c.hex, position: c.position })), sizes: style.sizes.map(s => ({ id: s.id, label: s.label, position: s.position })), artworkSetIds: style.artworkSets.map(s => s.artworkSetId), orderedColorIds: [...new Set(style.orderLines.map(l => l.colorId))] };
 }
 function admin(ctx: RequestContext) { if (ctx.actor.role !== "admin") throw new AppError("FORBIDDEN", 403, "Administrator access is required."); }
 async function season(tx: DbTransaction, id: string) {
@@ -52,7 +52,7 @@ export function createCatalogService(client: PrismaClient = db) {
     const sets = await tx.artworkSet.findMany({ where: { seasonId }, orderBy: { position: "asc" } });
     if (!sets.length) throw new AppError("INVALID_CATALOG", 422, "Create the season's artwork set first.");
     const last = await tx.merchandiseStyle.aggregate({ where: { seasonId }, _max: { position: true } });
-    const style = await tx.merchandiseStyle.create({ data: { seasonId, name: input.name, description: input.description, unitPriceCents: input.unitPriceCents, cut: input.cut, position: (last._max.position ?? -1) + 1,
+    const style = await tx.merchandiseStyle.create({ data: { seasonId, name: input.name, description: input.description, manufacturerUrl: input.manufacturerUrl, unitPriceCents: input.unitPriceCents, cut: input.cut, position: (last._max.position ?? -1) + 1,
      colors: { create: input.colors.map((c, position) => ({ name: c.name, normalizedName: normalizedName(c.name), hex: c.hex, position })) },
      sizes: { create: uniqueSizes(input.sizes).map((label, position) => ({ label, normalizedLabel: normalizedName(label), position })) },
      artworkSets: { create: sets.map((s, position) => ({ artworkSetId: s.id, position })) },
@@ -61,6 +61,10 @@ export function createCatalogService(client: PrismaClient = db) {
     await tx.season.update({ where: { id: seasonId }, data: { version: { increment: 1 } } });
     return view(style);
    }, client);
+  },
+  async updateStyleDetails(ctx: RequestContext, id: string, version: number, raw: unknown): Promise<CatalogStyle> {
+   admin(ctx); const input = parseCatalog(styleDetailsSchema, raw);
+   return withTransaction(async tx => { const style = await current(tx, id, version); await tx.merchandiseStyle.update({ where: { id }, data: input }); return bump(tx, style); }, client);
   },
   async updateStylePrice(ctx: RequestContext, id: string, version: number, cents: number): Promise<CatalogStyle> {
    admin(ctx); parseCatalog(centsSchema, cents);

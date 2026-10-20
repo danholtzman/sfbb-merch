@@ -3,7 +3,7 @@ import { requireActor, authorizeMutation } from "../../server/authorization";
 import { apiResponse, jsonData, readSmallJson } from "../../server/http";
 import { centsSchema, versionSchema, idSchema } from "../../domain/schemas";
 import { createCatalogService } from "./service";
-import { colorsSchema, parseCatalog } from "./colors";
+import { colorsSchema, styleDetailsSchema, parseCatalog } from "./colors";
 export function catalogCollection(request: Request, params: Promise<{ id: string }>) {
  return apiResponse(async () => {
   const ctx = await requireActor(request, "admin"), { id } = await params;
@@ -13,11 +13,12 @@ export function catalogCollection(request: Request, params: Promise<{ id: string
   return jsonData(await service.createStyle(ctx, id, await readSmallJson(request, 32768)));
  });
 }
-export function catalogMutation(request: Request, params: Promise<{ id: string }>, operation: "price" | "colors" | "sets" | "delete") {
+export function catalogMutation(request: Request, params: Promise<{ id: string }>, operation: "details" | "price" | "colors" | "sets" | "delete") {
  return apiResponse(async () => {
   const ctx = await requireActor(request, "admin"); await authorizeMutation(request, ctx);
   const { id } = await params, raw = await readSmallJson(request, 32768), service = createCatalogService();
   const base = z.strictObject({ expectedVersion: versionSchema });
+  if (operation === "details") { const { expectedVersion, ...details } = parseCatalog(base.extend(styleDetailsSchema.shape), raw); return jsonData(await service.updateStyleDetails(ctx, id, expectedVersion, details)); }
   if (operation === "price") { const input = parseCatalog(base.extend({ unitPriceCents: centsSchema }), raw); return jsonData(await service.updateStylePrice(ctx, id, input.expectedVersion, input.unitPriceCents)); }
   if (operation === "colors") { const input = parseCatalog(base.extend({ colors: colorsSchema }), raw); return jsonData(await service.saveStyleColors(ctx, id, input.expectedVersion, input.colors)); }
   if (operation === "sets") { const input = parseCatalog(base.extend({ setIds: z.array(idSchema).min(1).max(100) }), raw); return jsonData(await service.setStyleArtworkSets(ctx, id, input.expectedVersion, input.setIds)); }

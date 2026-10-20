@@ -30,6 +30,7 @@ export async function validateSeasonReadiness(tx: DbTransaction, id: string) {
       if (set.seasonId !== id) fields[`${set.id}.season`] = `${set.name}: artwork must belong to this season.`;
       for (const side of ["front", "back"] as const) {
         const asset = side === "front" ? set.frontAsset : set.backAsset;
+        if (side === "back" && !asset) continue;
         if (!asset || asset.mime !== "image/png" || asset.width <= 0 || asset.height <= 0 || asset.byteSize <= 0) fields[`${set.id}.${side}`] = `${set.name}: upload a valid ${side} PNG.`;
       }
     }
@@ -62,7 +63,7 @@ export function createSeasonService(client: PrismaClient = db) {
           freshId = (await tx.artworkSet.create({ data: { seasonId: season.id, name: "Season artwork", normalizedName: "season artwork" } })).id;
         }
         for (const style of source?.styles ?? []) {
-          const copy = await tx.merchandiseStyle.create({ data: { seasonId: season.id, name: style.name, description: style.description, unitPriceCents: style.unitPriceCents, cut: style.cut, position: style.position } });
+          const copy = await tx.merchandiseStyle.create({ data: { seasonId: season.id, name: style.name, description: style.description, manufacturerUrl: style.manufacturerUrl, unitPriceCents: style.unitPriceCents, cut: style.cut, position: style.position } });
           const colors = new Map<string, string>();
           for (const color of style.colors) {
             const newColor = await tx.styleColor.create({ data: { styleId: copy.id, name: color.name, normalizedName: color.normalizedName, hex: color.hex, position: color.position } }); colors.set(color.id, newColor.id);

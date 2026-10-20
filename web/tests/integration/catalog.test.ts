@@ -91,3 +91,23 @@ it("rejects stale writes and serializes competing color changes", async () => {
   expect(results.filter(r => r.status === "fulfilled")).toHaveLength(1);
   expect(results.find(r => r.status === "rejected")).toMatchObject({ reason: { code: "STALE_VERSION" } });
 });
+
+it("persists an optional manufacturer URL and rejects unsafe links", async () => {
+ const c = await seedCatalog(database.client);
+ const style = await service.createStyle(ctx, c.season.id, { ...input, manufacturerUrl: " https://example.com/shirts?fit=classic " });
+ expect(style).toMatchObject({ manufacturerUrl: "https://example.com/shirts?fit=classic" });
+ expect((await service.getCatalog(ctx, c.season.id)).styles.find(s => s.id === style.id)).toMatchObject({ manufacturerUrl: "https://example.com/shirts?fit=classic" });
+ for (const manufacturerUrl of ["javascript:alert(1)", "ftp://example.com", "not a URL"]) await expect(service.createStyle(ctx, c.season.id, { ...input, manufacturerUrl })).rejects.toMatchObject({ status: 422 });
+ expect(await service.createStyle(ctx, c.season.id, input)).toMatchObject({ manufacturerUrl: "" });
+});
+
+it("edits and clears manufacturer details with administrator and version checks", async () => {
+ const c = await seedCatalog(database.client);
+ const details = { description: " Updated cotton ", manufacturerUrl: "https://example.com/tee" };
+ const updated = await service.updateStyleDetails(ctx, c.style.id, 1, details);
+ expect(updated).toMatchObject({ description: "Updated cotton", manufacturerUrl: details.manufacturerUrl, version: 2 });
+ await expect(service.updateStyleDetails(ctx, c.style.id, 1, details)).rejects.toMatchObject({ code: "STALE_VERSION" });
+ await expect(service.updateStyleDetails({ ...ctx, actor: { ...ctx.actor, role: "member" } }, c.style.id, 2, details)).rejects.toMatchObject({ status: 403 });
+ await expect(service.updateStyleDetails(ctx, c.style.id, 2, { ...details, manufacturerUrl: "javascript:alert(1)" })).rejects.toMatchObject({ status: 422 });
+ expect(await service.updateStyleDetails(ctx, c.style.id, 2, { description: updated.description, manufacturerUrl: " " })).toMatchObject({ manufacturerUrl: "", version: 3 });
+});
