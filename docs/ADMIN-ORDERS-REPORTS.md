@@ -28,7 +28,7 @@ All mutations use the existing server role, same-origin and CSRF checks. Hiding 
 
 ## Report downloads
 
-`GET /api/admin/reports/{billing|member-delivery|manufacturer-order}?seasonId=<UUID>` requires a live admin session. The service rechecks expiry inside the database transaction, reads season metadata and its complete order set together, and returns a private/no-store CSV attachment with nosniff. It never uses dashboard search. Members/unauthenticated requests receive 403/401; unknown report names or malformed IDs are rejected.
+`GET /api/admin/reports/{billing|member-delivery|product-delivery|manufacturer-order}?seasonId=<UUID>` requires a live admin session. The service rechecks expiry inside the database transaction, reads season metadata and its complete order set together, and returns a private/no-store CSV attachment with nosniff. It never uses dashboard search. Members/unauthenticated requests receive 403/401; unknown report names or malformed IDs are rejected.
 
 All reports exclude cancelled orders, omit Season/Status columns, and identify the collection in the filename:
 
@@ -38,11 +38,12 @@ The slug uses Unicode decomposition, removes combining marks, lowercases ASCII l
 
 | Report | Exact header | Row behavior |
 | --- | --- | --- |
-| Billing | `Order code,Full name,Quantity,Amount owed,Note` | One row per non-cancelled order; quantity totals all items; Complete owes `0.00`; other amounts use stored prices. |
-| Member delivery | `Full name,Order code,Item,Artwork set,Color,Size,Quantity,Note` | Combine matching variants within one order, never across codes/members; repeat member/code/note on every item row. Includes delivered/Complete orders. |
-| Manufacturer order | `Item,Artwork set,Color,Size,Quantity` | Combine matching variants across all non-cancelled orders/progress states. Includes delivered/Complete orders. |
+| Billing | `Name,Total T-shirts,Amount Owed,Paid?,Comment` | Exact-name customer totals, combined notes, blank Paid?, blank separator and Totals footer. Complete contributes zero owed. |
+| Fulfillment by customer | `Name,Product Name,Size,Quantity,Fulfilled` | Customer name on first item only; matching variants combined across that customer's orders; blank separators/checklist. |
+| Fulfillment by product | `Product Name,Size,Name,Quantity,Fulfilled` | Product/size on first customer only; per-customer quantities; blank separators/checklist. |
+| T-shirt ordering | `Product Name,Size,Total,Ordered?` | Variant totals across all progress states; blank Ordered?. |
 
-Matching packing/manufacturer variants include stable style/set/color/size references and ordered names/swatches. Unit price does not split these variants because those reports do not list prices. Different styles sharing a display name, or historically distinct ordered colors, remain separate groups. Billing/delivery order by member name, then code; delivery keeps original item order. Manufacturer rows sort by displayed item/set/color/size, with stable identity as a tie-breaker. Sorting uses deterministic string comparison, independent of the machine's locale.
+As requested on 2026-10-20, email, water-bottle and personalization columns and the unsupported water-bottle report are omitted. Product labels combine ordered style, color and artwork-set names, retaining stable variant/swatch identities. All reports exclude cancelled orders; fulfillment/purchasing includes delivered/Complete orders. Sort customers by exact saved name and variants by style/color/set, standard clothing-size order, and stable identity. Distinct spellings of a name remain separate. No data migration or new checkout fields are required. Full contracts are in section 10 of SFBB-MERCH-SPEC.md.
 
 Money is integer-cent based. Report quantities and dashboard aggregate sums use BigInt; CSV currency has exactly two decimal places and no currency symbol. Every cell is quoted, embedded quotes are doubled, commas/newlines and Unicode are preserved, record separators are CRLF, and UTF-8 has a BOM. Text beginning with spreadsheet-formula prefixes (`=`, `+`, `-`, `@`, tab, carriage return, or leading whitespace before a formula prefix) receives an apostrophe prefix. Empty results still contain the exact header.
 

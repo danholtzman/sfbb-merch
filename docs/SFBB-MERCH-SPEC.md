@@ -36,7 +36,7 @@ For conflicts, apply the latest decisions recorded here. The mockup's current CS
 - Custom shirt styles, colors, sizes, prices, blank photos, and paired artwork sets.
 - Front/back composites and per-style placement editing.
 - Admin order editing, cancellation, restoration, and progress management.
-- Billing, member-delivery, and manufacturer-order CSV exports.
+- Billing, fulfillment by customer, fulfillment by product, and T-shirt ordering CSV exports.
 - Durable server storage, persistent uploads, and self-hosted operation.
 
 ### Excluded from the first release
@@ -276,7 +276,7 @@ Table columns: **Member / order**, **Items**, **Amount owed**, **Status**, and *
 | Open | Not delivered; included in items-to-fulfill count and amount owed |
 | Delivered · unpaid | Delivered, payment outstanding; excluded from items-to-fulfill, included in amount owed |
 | Complete | Delivered and payment resolved; excluded from items-to-fulfill and amount owed |
-| Cancelled | Inactive order; excluded from active metrics and all three exports; owed zero |
+| Cancelled | Inactive order; excluded from active metrics and all four exports; owed zero |
 
 Persist cancellation separately from progress so restoration can retain the progress state, but present one combined status to users. Admin dropdown choices are Open, Delivered · unpaid, and Complete. Allow admins to correct progress in either direction; no rigid transition sequence was imposed.
 
@@ -294,57 +294,53 @@ Changing a row's style resets its dependent variant choices and defaults its uni
 
 ## 10. CSV specifications
 
-All three exports use **all applicable orders in the selected season**, not merely rows matching the current search. All exclude cancelled orders. No export contains a Season column or a Status column.
+Updated 2026-10-20 to match the owner's supplied CSV layouts, omitting email addresses, water bottles, and personalization. Provide four exports for all applicable orders in the selected season, independently of dashboard search. Exclude cancelled orders. No export contains a Season or Status column; Paid?, Fulfilled and Ordered? are intentionally blank manual checklist cells, not exported application status. Waterbottle Ordering is omitted entirely until that product is supported.
 
 ### File names
 
-`sfbb-{season-name-slug}-{opening-date}-{report}.csv`
-
-Report suffixes: `billing`, `member-delivery`, `manufacturer-order`.
-
-Example: `sfbb-the-2026-season-collection-2026-10-01-billing.csv`.
-
-For the slug, normalize Unicode, remove combining accents, lowercase, replace runs outside ASCII letters/digits with hyphens, trim boundary hyphens, limit to 80 characters, and use `season` if empty. Dates are `YYYY-MM-DD`.
+Keep the established season/date filenames: `sfbb-{season-name-slug}-{opening-date}-{report}.csv`. Report suffixes are `billing`, `member-delivery`, `product-delivery`, and `manufacturer-order`. Existing download URLs remain compatible; `product-delivery` is new. Slugs normalize Unicode, remove combining accents, lowercase, replace runs outside ASCII letters/digits with hyphens, trim boundary hyphens, limit to 80 characters, and use `season` if empty.
 
 ### Billing CSV
 
-One row per non-cancelled order, sorted by member name then order code.
-
-Exact header order:
-
 ```text
-Order code,Full name,Quantity,Amount owed,Note
+Name,Total T-shirts,Amount Owed,Paid?,Comment
 ```
 
-Quantity sums all line quantities. Amount owed is the order's full total unless Complete, in which case it is `0.00`. Currency numbers have exactly two decimal places and no currency symbol. Repeat neither item variants nor a status/season column in this file.
+Group non-cancelled orders by exact saved customer name, sorted by name. Aggregate shirt quantities across that customer's orders. Sum snapshot-based balances, counting Complete orders as zero owed but retaining their item quantities. Combine distinct nonempty order notes in code/id order with newlines. Leave Paid? blank. Currency is decimal with two places and no symbol. For nonempty exports, append a blank separator row and a Totals row for shirt quantity and amount owed; leave checklist/comment cells blank. Empty exports contain only the header.
 
-### Member delivery CSV
-
-A packing/distribution list, organized by member and order. Include all non-cancelled orders, including delivered and Complete orders; no undelivered-only filter was specified. Within each order combine duplicate matching variants. Do not combine different members' orders or even different order codes for the same member.
-
-Exact header order:
+### Fulfillment by customer CSV
 
 ```text
-Full name,Order code,Item,Artwork set,Color,Size,Quantity,Note
+Name,Product Name,Size,Quantity,Fulfilled
 ```
 
-Repeat member name, code, and order note on each row so the file remains usable when sorted or filtered. Use ordered color/name snapshots. Sort orders by member name then code; keep a stable item order within each order.
+Group by exact customer name and combine matching variants across that customer's orders, including delivered/Complete orders. Print the name on the first item row only, with a blank separator row between customers. Repeat product name/size for each variant; leave Fulfilled blank.
 
-### Manufacturer order CSV
-
-A purchasing/production list. Combine matching variants across every non-cancelled order in the season, regardless of progress. Delivered/Complete orders remain in the season's total; this is not a reorder of only outstanding items.
-
-Exact header order:
+### Fulfillment by product CSV
 
 ```text
-Item,Artwork set,Color,Size,Quantity
+Product Name,Size,Name,Quantity,Fulfilled
 ```
 
-Variant identity includes style, artwork set, ordered color identity/name/swatch, and size. Never split totals by order progress, member, or code. Different styles with identical display names remain separate variants. Color edits must not combine historically distinct ordered colors accidentally. Sort deterministically by item, set, color, and size. The current mockup sorts their combined display values lexically.
+Group by variant, then list customers and their aggregate quantities. Print Product Name and Size on the first customer row only. Put a blank separator row between variants; leave Fulfilled blank. Include delivered/Complete orders.
+
+### T-shirt ordering CSV
+
+```text
+Product Name,Size,Total,Ordered?
+```
+
+Combine matching variants across all non-cancelled orders regardless of progress. Print one row per variant, with Ordered? blank. This remains the `manufacturer-order` endpoint/filename suffix.
+
+### Product labels, identities, and sorting
+
+Product Name combines ordered style name, color name and artwork-set name separated by ` — ` so artwork designs are distinguishable within the reference layout's single product column. Use ordered snapshots, never current renamed colors or changed prices. Matching variants retain stable style/set/color/size identities and ordered names/swatches. Unit price does not split fulfillment/purchasing variants. Different styles or historical swatches remain separate even if visible labels coincide.
+
+Sort customers by exact name and variants by style name, color name, artwork-set name, then standard clothing size order (XXXS through 6XL; 2X/XXL aliases sort with 2XL and 3X/XXXL with 3XL). Unknown size labels follow standard sizes in deterministic lexical order. Stable identity breaks display ties. Preserve existing per-order identities in the application; name grouping applies only to these exports. Do not merge different spellings/case variants of customer names.
 
 ### CSV encoding and safety
 
-Use UTF-8 with BOM, comma separators, CRLF line endings, and proper quoting of every cell. Escape embedded double quotes. Preserve commas/newlines in names and notes. Neutralize spreadsheet-formula prefixes such as `=`, `+`, `-`, `@`, tab, and carriage return in text cells. Empty exports contain the header only. Keep the on-page descriptions accurate for each report.
+Use UTF-8 with BOM, comma separators, CRLF line endings, and proper quoting of every cell. Escape embedded double quotes. Preserve commas/newlines in names and notes. Neutralize spreadsheet-formula prefixes such as `=`, `+`, `-`, `@`, tab, and carriage return in text cells. Empty exports contain the header only. Every non-separator row has all header cells, including blank manual-checklist cells. Keep the on-page descriptions accurate for each report.
 
 ## 11. Visual, responsive, and modal requirements
 

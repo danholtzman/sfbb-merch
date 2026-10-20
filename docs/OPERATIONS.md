@@ -20,7 +20,7 @@ Price changes, offered-set checkboxes, uploads, and order-status dropdowns save 
 
 Members can edit/cancel/restore only while the published window is open and retained progress is Open. Admins can correct/edit/cancel/restore after closure and for other progress states. Cancelled orders retain their snapshots and prior progress. Status is **Open**, **Delivered · unpaid**, **Complete**, or a Cancelled badge. Complete/Cancelled amount owed is zero; partial-payment accounting was not designed.
 
-The Orders dashboard selects a season, searches member/code, and opens direct admin editors. Search only changes the displayed table; downloads still include the entire selected season. Export **Billing CSV** for one active row per order, **Member delivery CSV** for variants grouped by member/order, and **Manufacturer order CSV** for aggregate variant quantities. All exclude cancelled orders and omit Season/Status columns. Season/date identity is in filenames. Delivered/Complete orders remain in delivery/manufacturer totals; Complete billing amount owed is zero. Fulfill and collect payment through the band's existing process, then update status.
+The Orders dashboard selects a season, searches member/code, and opens direct admin editors. Search only changes the displayed table; downloads still include the entire selected season. Export **Billing CSV** for exact-name customer totals/notes with a blank Paid? checklist, **Fulfillment by customer CSV** and **Fulfillment by product CSV** for distribution grouped in either direction, and **T-shirt ordering CSV** for aggregate variants with a blank Ordered? checklist. All exclude cancelled orders and omit Season/Status/email/water-bottle/personalization columns. Collection identity remains in filenames. Delivered/Complete orders remain in fulfillment/purchasing quantities; Complete contributes zero owed. See ADMIN-ORDERS-REPORTS.md for exact headers, separators, and totals.
 
 ## Manual Pi preparation and acceptance
 
@@ -53,7 +53,7 @@ After separate approval of the concrete release and Caddy/tunnel integration, de
 - Member shop/find-order work at desktop, 390px and 320px; front/back artwork, single-set controls, quantities, bag/checkout/code/owed amount and permitted edits work.
 - Unauthorized `/admin` redirects to login; unauthenticated admin APIs/CSV downloads return 401; members cannot mutate admin resources or read draft catalog/compositions.
 - Paired artwork/blank uploads and placement edits survive restart and do not swap front/back, sets or colors. Authenticated image URLs work through the domain.
-- Admin corrections and all three CSV files match setup orders, including cancellation exclusion, Complete-zero billing, variant aggregation and season filenames.
+- Admin corrections and all four CSV files match setup orders, including cancellation exclusion, Complete-zero billing, variant aggregation and season filenames.
 - Docker's published binding is `127.0.0.1:3000`; inspect Pi listeners to confirm it is not publicly bound. Validate the actual Caddyfile before reload, verify the existing tunnel route, and inspect the address-trust setup. Leave proxy trust disabled unless Caddy overwrites both trust headers from validated ingress.
 - Run and independently verify a manual backup, copy it off the microSD, and rehearse recovery using isolated data/compatible images. Confirm order/asset persistence and old-data retention before clearing test artifacts.
 
