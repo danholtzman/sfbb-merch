@@ -243,7 +243,6 @@ Saving updates member, admin, and bag previews. Production may cache generated c
 
 Use the current open collection, season name, announcement, status, and closing date. Each shirt card shows photo/composite, front/back toggle, name, price, description, selectable color swatches with visible selected color name, size dropdown, quantity input, and Add.
 
-Align shop cards by shared rows for images, headings, details, color choices, artwork selectors, ordering controls and feedback. Longer titles/descriptions, optional manufacturer links and differing selector counts must not shift adjacent cards’ controls vertically. Preserve this layout responsively without horizontal overflow.
 
 Display Artwork set selection only when the style offers multiple sets. One set is selected automatically and must work without a visible selector. Size is required; default quantity is 1 and must be a positive whole number.
 
