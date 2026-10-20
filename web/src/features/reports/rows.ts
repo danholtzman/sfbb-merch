@@ -1,6 +1,6 @@
 import type { OrderView, OrderLineView, SeasonView } from "../../domain/types";
 import { cartTotal } from "../orders/cart";
-export type Report = "billing" | "member-delivery" | "product-delivery" | "item-artwork-delivery" | "manufacturer-order";
+export type Report = "billing" | "member-delivery" | "product-delivery" | "manufacturer-order";
 const compare = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
 const sortedOrders = (orders: OrderView[]) => orders.filter(o => !o.cancelled).sort((a,b) => compare(a.fullName, b.fullName) || compare(a.code,b.code) || compare(a.id,b.id));
 export function decimalCents(cents: bigint): string { return `${cents/100n}.${(cents%100n).toString().padStart(2,"0")}`; }
@@ -55,22 +55,6 @@ export function deliveryRows(orders: OrderView[]): string[][] {
  return rows;
 }
 export function productDeliveryRows(orders: OrderView[]): string[][] {
- const rows: string[][]=[["Product Name","Size","Name","Quantity","Fulfilled"]];
- const variants=new Map<string,{line:OrderLineView;customers:Map<string,bigint>}>();
- for(const order of sortedOrders(orders)) for(const line of order.lines) {
-  const key=identity(line),variant=variants.get(key) ?? {line,customers:new Map<string,bigint>()};
-  variant.customers.set(order.fullName,(variant.customers.get(order.fullName) ?? 0n)+BigInt(line.quantity));variants.set(key,variant);
- }
- for(const {line,customers} of [...variants.values()].sort((a,b)=>variantCompare(a.line,b.line))) {
-  if(rows.length>1)rows.push([]);
-  let first=true;
-  for(const [name,quantity] of customers) {
-   rows.push([first ? productName(line) : "",first ? line.sizeLabel : "",name,quantity.toString(),""]);first=false;
-  }
- }
- return rows;
-}
-export function itemArtworkDeliveryRows(orders: OrderView[]): string[][] {
  const rows:string[][]=[["Item","Artwork set","Name","Color","Size","Quantity","Fulfilled"]];
  const groups=new Map<string,{line:OrderLineView;members:Map<string,{name:string;line:OrderLineView;quantity:bigint}>}>();
  for(const order of sortedOrders(orders)) for(const line of order.lines) {

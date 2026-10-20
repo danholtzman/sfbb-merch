@@ -34,11 +34,11 @@ test.describe("admin order management", { tag: "@admin-orders" }, () => {
   await expect(page.getByRole("dialog")).toHaveCount(0); const revised = page.getByRole("row").filter({hasText:"Alex Revised"}); await expect(revised.getByRole("combobox")).toHaveValue("COMPLETE"); await expect(revised.getByText(orders[0].code)).toBeVisible();
   await revised.getByRole("button",{name:"View ↗",exact:true}).click(); await page.getByRole("button",{name:"Cancel order",exact:true}).click(); await page.getByRole("button",{name:`Yes, cancel order ${orders[0].code}`}).click(); await expect(page.getByRole("dialog").getByText("Cancelled",{exact:true})).toBeVisible(); await page.getByRole("button",{name:"Restore order",exact:true}).click(); await expect(page.getByRole("dialog").getByText("Complete",{exact:true})).toBeVisible(); await page.getByRole("button",{name:"Close dialog"}).click();
   await page.getByRole("textbox",{name:"Search orders"}).fill("Alex Revised"); await expect(page.getByRole("row").filter({hasText:"Bea Chen"})).toHaveCount(0);
+  await expect(page.getByRole("button",{name:"↓ Delivery by item & artwork CSV",exact:true})).toHaveCount(0);
   const expected = [
    ["Billing CSV",["Full name","Order code","Total T-shirts","Amount Owed","Paid?","Comment"],4,"billing"],
    ["Fulfillment by customer CSV",["Name","Product Name","Size","Quantity","Fulfilled"],3,"member-delivery"],
-   ["Fulfillment by product CSV",["Product Name","Size","Name","Quantity","Fulfilled"],2,"product-delivery"],
-   ["Delivery by item & artwork CSV",["Item","Artwork set","Name","Color","Size","Quantity","Fulfilled"],2,"item-artwork-delivery"],
+   ["Fulfillment by product CSV",["Item","Artwork set","Name","Color","Size","Quantity","Fulfilled"],2,"product-delivery"],
    ["T-shirt ordering CSV",["Product Name","Size","Total","Ordered?"],1,"manufacturer-order"]
   ] as const;
   for (const [button,header,count,suffix] of expected) {
@@ -48,8 +48,7 @@ test.describe("admin order management", { tag: "@admin-orders" }, () => {
    if (suffix==="billing") { expect(rows.slice(1,3).map(r=>[r[0],r[1],r[2],r[3]])).toEqual([["Alex Revised",orders[0].code,"4","0.00"],["Bea Chen",orders[1].code,"3","75.00"]]); expect(rows[1][5]).toBe('Pickup, "please"\nThank you'); }
    if (suffix==="manufacturer-order") expect(rows[1]).toEqual([expect.any(String),"L","7",""]);
    if (suffix==="billing") expect(rows.at(-1)).toEqual(["Totals","","7","75.00","",""]);
-   if (suffix==="item-artwork-delivery") { expect(rows.slice(1).map(r=>[r[2],r[4],r[5],r[6]])).toEqual([["Alex Revised","L","4",""],["Bea Chen","L","3",""]]);expect(rows[2].slice(0,2)).toEqual(["",""]); }
-   if (suffix==="product-delivery") { expect(rows.slice(1).map(r=>[r[2],r[3],r[4]])).toEqual([["Alex Revised","4",""],["Bea Chen","3",""]]);expect(rows[2].slice(0,2)).toEqual(["",""]); }
+   if (suffix==="product-delivery") { expect(rows.slice(1).map(r=>[r[2],r[4],r[5],r[6]])).toEqual([["Alex Revised","L","4",""],["Bea Chen","L","3",""]]);expect(rows[2].slice(0,2)).toEqual(["",""]); }
   }
   await page.screenshot({path:info.outputPath("admin-orders.png"),fullPage:true});
  });

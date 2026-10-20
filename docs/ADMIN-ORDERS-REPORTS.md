@@ -28,7 +28,7 @@ All mutations use the existing server role, same-origin and CSRF checks. Hiding 
 
 ## Report downloads
 
-`GET /api/admin/reports/{billing|member-delivery|product-delivery|item-artwork-delivery|manufacturer-order}?seasonId=<UUID>` requires a live admin session. The service rechecks expiry inside the database transaction, reads season metadata and its complete order set together, and returns a private/no-store CSV attachment with nosniff. It never uses dashboard search. Members/unauthenticated requests receive 403/401; unknown report names or malformed IDs are rejected.
+`GET /api/admin/reports/{billing|member-delivery|product-delivery|manufacturer-order}?seasonId=<UUID>` requires a live admin session. The service rechecks expiry inside the database transaction, reads season metadata and its complete order set together, and returns a private/no-store CSV attachment with nosniff. It never uses dashboard search. Members/unauthenticated requests receive 403/401; unknown report names or malformed IDs are rejected.
 
 All reports exclude cancelled orders, omit Season/Status columns, and identify the collection in the filename:
 
@@ -40,8 +40,7 @@ The slug uses Unicode decomposition, removes combining marks, lowercases ASCII l
 | --- | --- | --- |
 | Billing | `Full name,Order code,Total T-shirts,Amount Owed,Paid?,Comment` | One row per order, full name first/code second, original comment, blank Paid?, blank separator and Totals footer. Complete contributes zero owed. |
 | Fulfillment by customer | `Name,Product Name,Size,Quantity,Fulfilled` | Customer name on first item only; matching variants combined across that customer's orders; blank separators/checklist. |
-| Fulfillment by product | `Product Name,Size,Name,Quantity,Fulfilled` | Product/size on first customer only; per-customer quantities; blank separators/checklist. |
-| Delivery by item/artwork | `Item,Artwork set,Name,Color,Size,Quantity,Fulfilled` | Sections by item/artwork across all colors/sizes; customers and matching variant quantities within each section; blank checklist/separators. |
+| Fulfillment by product | `Item,Artwork set,Name,Color,Size,Quantity,Fulfilled` | Sections by item/artwork across all colors/sizes; customers and matching variant quantities within each section; blank checklist/separators. |
 | T-shirt ordering | `Product Name,Size,Total,Ordered?` | Variant totals across all progress states; blank Ordered?. |
 
 As requested on 2026-10-20, email, water-bottle and personalization columns and the unsupported water-bottle report are omitted. Product labels combine ordered style, color and artwork-set names, retaining stable variant/swatch identities. All reports exclude cancelled orders; fulfillment/purchasing includes delivered/Complete orders. Billing sorts by full name then order code and keeps same-name orders separate. Fulfillment groups customers by exact saved name; sort customers by exact saved name and variants by style/color/set, standard clothing-size order, and stable identity. Distinct spellings of a name remain separate. No data migration or new checkout fields are required. Full contracts are in section 10 of SFBB-MERCH-SPEC.md.

@@ -276,7 +276,7 @@ Table columns: **Member / order**, **Items**, **Amount owed**, **Status**, and *
 | Open | Not delivered; included in items-to-fulfill count and amount owed |
 | Delivered · unpaid | Delivered, payment outstanding; excluded from items-to-fulfill, included in amount owed |
 | Complete | Delivered and payment resolved; excluded from items-to-fulfill and amount owed |
-| Cancelled | Inactive order; excluded from active metrics and all five exports; owed zero |
+| Cancelled | Inactive order; excluded from active metrics and all four exports; owed zero |
 
 Persist cancellation separately from progress so restoration can retain the progress state, but present one combined status to users. Admin dropdown choices are Open, Delivered · unpaid, and Complete. Allow admins to correct progress in either direction; no rigid transition sequence was imposed.
 
@@ -294,11 +294,11 @@ Changing a row's style resets its dependent variant choices and defaults its uni
 
 ## 10. CSV specifications
 
-Updated 2026-10-20 to match the owner's supplied CSV layouts, omitting email addresses, water bottles, and personalization. Provide five exports for all applicable orders in the selected season, independently of dashboard search. Exclude cancelled orders. No export contains a Season or Status column; Paid?, Fulfilled and Ordered? are intentionally blank manual checklist cells, not exported application status. Waterbottle Ordering is omitted entirely until that product is supported.
+Updated 2026-10-20 to match the owner's supplied CSV layouts, omitting email addresses, water bottles, and personalization. Provide four exports for all applicable orders in the selected season, independently of dashboard search. Exclude cancelled orders. No export contains a Season or Status column; Paid?, Fulfilled and Ordered? are intentionally blank manual checklist cells, not exported application status. Waterbottle Ordering is omitted entirely until that product is supported.
 
 ### File names
 
-Keep the established season/date filenames: `sfbb-{season-name-slug}-{opening-date}-{report}.csv`. Report suffixes are `billing`, `member-delivery`, `product-delivery`, `item-artwork-delivery`, and `manufacturer-order`. Existing download URLs remain compatible; `product-delivery` and `item-artwork-delivery` are additional views. Slugs normalize Unicode, remove combining accents, lowercase, replace runs outside ASCII letters/digits with hyphens, trim boundary hyphens, limit to 80 characters, and use `season` if empty.
+Keep the established season/date filenames: `sfbb-{season-name-slug}-{opening-date}-{report}.csv`. Report suffixes are `billing`, `member-delivery`, `product-delivery`, and `manufacturer-order`. The `product-delivery` download groups by item and artwork set; there is no separate item/artwork export. Slugs normalize Unicode, remove combining accents, lowercase, replace runs outside ASCII letters/digits with hyphens, trim boundary hyphens, limit to 80 characters, and use `season` if empty.
 
 ### Billing CSV
 
@@ -319,18 +319,10 @@ Group by exact customer name and combine matching variants across that customer'
 ### Fulfillment by product CSV
 
 ```text
-Product Name,Size,Name,Quantity,Fulfilled
-```
-
-Group by variant, then list customers and their aggregate quantities. Print Product Name and Size on the first customer row only. Put a blank separator row between variants; leave Fulfilled blank. Include delivered/Complete orders.
-
-### Delivery by item and artwork CSV
-
-```text
 Item,Artwork set,Name,Color,Size,Quantity,Fulfilled
 ```
 
-An additional member-delivery view grouped by shirt item and artwork set, rather than by name or individual color/size variant. Keep all colors and sizes of that item/artwork pair in one section. List customers within each section with their ordered color, size and combined matching-variant quantities. Print Item and Artwork set only on the first row of the section and put a blank separator between sections. Fulfilled remains blank. Include delivered/Complete orders and exclude cancellations. Stable style/set IDs and ordered names distinguish sections; full variant/swatch identity distinguishes rows. Sort sections by item/artwork names and stable identity, then customers by exact name and variants by color/size. Use the `item-artwork-delivery` report suffix.
+A member-delivery view grouped by shirt item and artwork set, rather than by name or individual color/size variant. Keep all colors and sizes of that item/artwork pair in one section. List customers within each section with their ordered color, size and combined matching-variant quantities. Print Item and Artwork set only on the first row of the section and put a blank separator between sections. Fulfilled remains blank. Include delivered/Complete orders and exclude cancellations. Stable style/set IDs and ordered names distinguish sections; full variant/swatch identity distinguishes rows. Sort sections by item/artwork names and stable identity, then customers by exact name and variants by color/size. Use the `product-delivery` report suffix.
 
 ### T-shirt ordering CSV
 
