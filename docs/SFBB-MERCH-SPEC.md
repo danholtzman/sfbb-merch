@@ -36,7 +36,7 @@ For conflicts, apply the latest decisions recorded here. The mockup's current CS
 - Custom shirt styles, colors, sizes, prices, blank photos, and paired artwork sets.
 - Front/back composites and per-style placement editing.
 - Admin order editing, cancellation, restoration, and progress management.
-- Billing, fulfillment by customer, fulfillment by product, and T-shirt ordering CSV exports.
+- Billing, fulfillment by customer/product, delivery by item/artwork, and T-shirt ordering CSV exports.
 - Durable server storage, persistent uploads, and self-hosted operation.
 
 ### Excluded from the first release
@@ -276,7 +276,7 @@ Table columns: **Member / order**, **Items**, **Amount owed**, **Status**, and *
 | Open | Not delivered; included in items-to-fulfill count and amount owed |
 | Delivered · unpaid | Delivered, payment outstanding; excluded from items-to-fulfill, included in amount owed |
 | Complete | Delivered and payment resolved; excluded from items-to-fulfill and amount owed |
-| Cancelled | Inactive order; excluded from active metrics and all four exports; owed zero |
+| Cancelled | Inactive order; excluded from active metrics and all five exports; owed zero |
 
 Persist cancellation separately from progress so restoration can retain the progress state, but present one combined status to users. Admin dropdown choices are Open, Delivered · unpaid, and Complete. Allow admins to correct progress in either direction; no rigid transition sequence was imposed.
 
@@ -294,19 +294,19 @@ Changing a row's style resets its dependent variant choices and defaults its uni
 
 ## 10. CSV specifications
 
-Updated 2026-10-20 to match the owner's supplied CSV layouts, omitting email addresses, water bottles, and personalization. Provide four exports for all applicable orders in the selected season, independently of dashboard search. Exclude cancelled orders. No export contains a Season or Status column; Paid?, Fulfilled and Ordered? are intentionally blank manual checklist cells, not exported application status. Waterbottle Ordering is omitted entirely until that product is supported.
+Updated 2026-10-20 to match the owner's supplied CSV layouts, omitting email addresses, water bottles, and personalization. Provide five exports for all applicable orders in the selected season, independently of dashboard search. Exclude cancelled orders. No export contains a Season or Status column; Paid?, Fulfilled and Ordered? are intentionally blank manual checklist cells, not exported application status. Waterbottle Ordering is omitted entirely until that product is supported.
 
 ### File names
 
-Keep the established season/date filenames: `sfbb-{season-name-slug}-{opening-date}-{report}.csv`. Report suffixes are `billing`, `member-delivery`, `product-delivery`, and `manufacturer-order`. Existing download URLs remain compatible; `product-delivery` is new. Slugs normalize Unicode, remove combining accents, lowercase, replace runs outside ASCII letters/digits with hyphens, trim boundary hyphens, limit to 80 characters, and use `season` if empty.
+Keep the established season/date filenames: `sfbb-{season-name-slug}-{opening-date}-{report}.csv`. Report suffixes are `billing`, `member-delivery`, `product-delivery`, `item-artwork-delivery`, and `manufacturer-order`. Existing download URLs remain compatible; `product-delivery` and `item-artwork-delivery` are additional views. Slugs normalize Unicode, remove combining accents, lowercase, replace runs outside ASCII letters/digits with hyphens, trim boundary hyphens, limit to 80 characters, and use `season` if empty.
 
 ### Billing CSV
 
 ```text
-Name,Total T-shirts,Amount Owed,Paid?,Comment
+Full name,Order code,Total T-shirts,Amount Owed,Paid?,Comment
 ```
 
-Group non-cancelled orders by exact saved customer name, sorted by name. Aggregate shirt quantities across that customer's orders. Sum snapshot-based balances, counting Complete orders as zero owed but retaining their item quantities. Combine distinct nonempty order notes in code/id order with newlines. Leave Paid? blank. Currency is decimal with two places and no symbol. For nonempty exports, append a blank separator row and a Totals row for shirt quantity and amount owed; leave checklist/comment cells blank. Empty exports contain only the header.
+One row per non-cancelled order, sorted by full name then order code. Full name is always column 1 and order code column 2; orders with the same name remain separate billing rows. Sum each order's shirt quantities and use its snapshot-based balance, counting Complete as zero owed but retaining its item quantities and its own comment. Leave Paid? blank. Currency is decimal with two places and no symbol. For nonempty exports, append a blank separator row and a Totals row for shirt quantity and amount owed; leave the order-code/checklist/comment cells blank. Empty exports contain only the header.
 
 ### Fulfillment by customer CSV
 
@@ -324,6 +324,14 @@ Product Name,Size,Name,Quantity,Fulfilled
 
 Group by variant, then list customers and their aggregate quantities. Print Product Name and Size on the first customer row only. Put a blank separator row between variants; leave Fulfilled blank. Include delivered/Complete orders.
 
+### Delivery by item and artwork CSV
+
+```text
+Item,Artwork set,Name,Color,Size,Quantity,Fulfilled
+```
+
+An additional member-delivery view grouped by shirt item and artwork set, rather than by name or individual color/size variant. Keep all colors and sizes of that item/artwork pair in one section. List customers within each section with their ordered color, size and combined matching-variant quantities. Print Item and Artwork set only on the first row of the section and put a blank separator between sections. Fulfilled remains blank. Include delivered/Complete orders and exclude cancellations. Stable style/set IDs and ordered names distinguish sections; full variant/swatch identity distinguishes rows. Sort sections by item/artwork names and stable identity, then customers by exact name and variants by color/size. Use the `item-artwork-delivery` report suffix.
+
 ### T-shirt ordering CSV
 
 ```text
@@ -336,7 +344,7 @@ Combine matching variants across all non-cancelled orders regardless of progress
 
 Product Name combines ordered style name, color name and artwork-set name separated by ` — ` so artwork designs are distinguishable within the reference layout's single product column. Use ordered snapshots, never current renamed colors or changed prices. Matching variants retain stable style/set/color/size identities and ordered names/swatches. Unit price does not split fulfillment/purchasing variants. Different styles or historical swatches remain separate even if visible labels coincide.
 
-Sort customers by exact name and variants by style name, color name, artwork-set name, then standard clothing size order (XXXS through 6XL; 2X/XXL aliases sort with 2XL and 3X/XXXL with 3XL). Unknown size labels follow standard sizes in deterministic lexical order. Stable identity breaks display ties. Preserve existing per-order identities in the application; name grouping applies only to these exports. Do not merge different spellings/case variants of customer names.
+Sort customers by exact name and variants by style name, color name, artwork-set name, then standard clothing size order (XXXS through 6XL; 2X/XXL aliases sort with 2XL and 3X/XXXL with 3XL). Unknown size labels follow standard sizes in deterministic lexical order. Stable identity breaks display ties. Preserve existing per-order identities in the application; name grouping applies only to fulfillment exports. Do not merge different spellings/case variants of customer names.
 
 ### CSV encoding and safety
 

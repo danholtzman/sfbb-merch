@@ -1,11 +1,11 @@
 import { expect, it } from "vitest";
 import type { OrderView, OrderLineView, SeasonView } from "../../src/domain/types";
-import { billingRows, deliveryRows, productDeliveryRows, manufacturerRows, csvEncode, reportFilename } from "../../src/features/reports/rows";
+import { billingRows, deliveryRows, productDeliveryRows, itemArtworkDeliveryRows, manufacturerRows, csvEncode, reportFilename } from "../../src/features/reports/rows";
 const line: OrderLineView = { id: "line", styleId: "tee-a", artworkSetId: "pair-a", colorId: "blue", sizeId: "large", quantity: 2, unitPriceCents: 2510, styleName: "Classic Tee", artworkSetName: "Season pair", colorName: "Blue", colorHex: "#1247ED", sizeLabel: "L" };
 const make = (input: Partial<OrderView> = {}): OrderView => ({ id: "order", code: "BR4SS2", seasonId: "season", fullName: "Alex", note: "Pickup", progress: "OPEN", cancelled: false, version: 1, lines: [line], amountOwedCents: 5020, ...input });
-it("billing matches the reduced sample, groups exact customer names, and includes totals", () => {
+it("billing starts with full name and order code, preserves separate orders, and includes totals", () => {
  expect(billingRows([make({ fullName: "Zoe", cancelled: true }), make({ fullName: "Bea", progress: "COMPLETE", amountOwedCents: 999 }), make({ amountOwedCents: 999 }), make({ id:"second",code:"CCC333",note:"Second note",lines:[{...line,quantity:1}] })])).toEqual([
-  ["Name","Total T-shirts","Amount Owed","Paid?","Comment"], ["Alex","3","75.30","","Pickup\nSecond note"], ["Bea","2","0.00","","Pickup"], [], ["Totals","5","75.30","",""]
+  ["Full name","Order code","Total T-shirts","Amount Owed","Paid?","Comment"], ["Alex","BR4SS2","2","50.20","","Pickup"], ["Alex","CCC333","1","25.10","","Second note"], ["Bea","BR4SS2","2","0.00","","Pickup"], [], ["Totals","","5","75.30","",""]
  ]);
 });
 it("customer fulfillment matches grouped sample rows and combines customer variants across orders", () => {
@@ -18,6 +18,22 @@ it("product fulfillment lists each customer under its product/size with blank ch
  ]);
  const different=productDeliveryRows([make(),make({fullName:"Bea",lines:[{...line,sizeId:"small",sizeLabel:"S"}]})]);
  expect(different.slice(1)).toEqual([["Classic Tee — Blue — Season pair","S","Bea","2",""],[],["Classic Tee — Blue — Season pair","L","Alex","2",""]]);
+});
+it("item/artwork delivery groups colors and sizes together while separating artwork sets and historical identities",()=>{
+ const red={...line,colorId:"red",colorName:"Red",colorHex:"#FF0000",quantity:1};
+ const other={...line,artworkSetId:"encore",artworkSetName:"Encore",quantity:1};
+ const orders=[make(),make({code:"NEXT22",lines:[{...line,quantity:1}]}),make({fullName:"Bea",progress:"COMPLETE",lines:[{...line,sizeId:"small",sizeLabel:"S",quantity:1},red]}),make({fullName:"Zoe",progress:"DELIVERED_UNPAID",lines:[other]}),make({cancelled:true})];
+ expect(itemArtworkDeliveryRows(orders)).toEqual([
+  ["Item","Artwork set","Name","Color","Size","Quantity","Fulfilled"],
+  ["Classic Tee","Encore","Zoe","Blue","L","1",""],[],
+  ["Classic Tee","Season pair","Alex","Blue","L","3",""],
+  ["","","Bea","Blue","S","1",""],
+  ["","","Bea","Red","L","1",""]
+ ]);
+ expect(itemArtworkDeliveryRows([...orders].reverse())).toEqual(itemArtworkDeliveryRows(orders));
+ const distinct=itemArtworkDeliveryRows([make(),make({lines:[{...line,styleId:"same-name-other-style"}]}),make({lines:[{...line,colorHex:"#000080"}]})]);
+ expect(distinct.filter(r=>r[0]==="Classic Tee")).toHaveLength(2);
+ expect(distinct.filter(r=>r[5]==="2")).toHaveLength(3);
 });
 it("shirt ordering matches the sample and retains historical identities across all progress states", () => {
  const orders = [make(), make({ progress: "DELIVERED_UNPAID" }), make({ progress: "COMPLETE" }), make({ lines: [{ ...line, styleId: "tee-b", quantity: 1 }] }), make({ lines: [{ ...line, colorHex: "#000080", quantity: 1 }] }), make({ lines: [{ ...line, styleName: "Another tee", quantity: 1 }] }), make({ cancelled: true })];
@@ -38,7 +54,8 @@ it("filenames normalize accented names, cap slugs at 80 characters, include the 
  expect(reportFilename({ ...season, name: "a".repeat(90) }, "manufacturer-order")).toBe(`sfbb-${"a".repeat(80)}-2027-09-01-manufacturer-order.csv`);
 });
 it("empty exports contain only their exact header and can aggregate quantities above a single line's bound", () => {
- expect(billingRows([])).toEqual([["Name","Total T-shirts","Amount Owed","Paid?","Comment"]]);
+ expect(billingRows([])).toEqual([["Full name","Order code","Total T-shirts","Amount Owed","Paid?","Comment"]]);
+ expect(itemArtworkDeliveryRows([])).toEqual([["Item","Artwork set","Name","Color","Size","Quantity","Fulfilled"]]);
  expect(deliveryRows([])).toEqual([["Name","Product Name","Size","Quantity","Fulfilled"]]);
  expect(productDeliveryRows([])).toEqual([["Product Name","Size","Name","Quantity","Fulfilled"]]);
  expect(manufacturerRows([])).toEqual([["Product Name","Size","Total","Ordered?"]]);
@@ -61,6 +78,9 @@ it("real DB exports are season scoped, snapshot based, and reject member/revoked
   const productReport=await service.export(ctx,first.season.id,"product-delivery");
   expect(productReport.filename).toBe("sfbb-test-season-2026-10-01-product-delivery.csv");
   expect(new TextDecoder().decode(productReport.bytes)).toBe('"Product Name","Size","Name","Quantity","Fulfilled"\r\n"Classic Tee — Blue — Season artwork","L","Chosen","2",""\r\n');
+  const itemReport=await service.export(ctx,first.season.id,"item-artwork-delivery");
+  expect(itemReport.filename).toBe("sfbb-test-season-2026-10-01-item-artwork-delivery.csv");
+  expect(new TextDecoder().decode(itemReport.bytes)).toBe('"Item","Artwork set","Name","Color","Size","Quantity","Fulfilled"\r\n"Classic Tee","Season artwork","Chosen","Blue","L","2",""\r\n');
   await expect(service.export({ ...ctx, actor: { ...ctx.actor, role: "member" } },first.season.id,"billing")).rejects.toMatchObject({ status: 403 });
   await database.client.session.delete({ where: { id: session.id } });
   await expect(service.export(ctx,first.season.id,"billing")).rejects.toMatchObject({ status: 401 });

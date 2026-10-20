@@ -1,6 +1,6 @@
 import type { OrderView, OrderLineView, SeasonView } from "../../domain/types";
 import { cartTotal } from "../orders/cart";
-export type Report = "billing" | "member-delivery" | "product-delivery" | "manufacturer-order";
+export type Report = "billing" | "member-delivery" | "product-delivery" | "item-artwork-delivery" | "manufacturer-order";
 const compare = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
 const sortedOrders = (orders: OrderView[]) => orders.filter(o => !o.cancelled).sort((a,b) => compare(a.fullName, b.fullName) || compare(a.code,b.code) || compare(a.id,b.id));
 export function decimalCents(cents: bigint): string { return `${cents/100n}.${(cents%100n).toString().padStart(2,"0")}`; }
@@ -17,15 +17,14 @@ function customers(orders: OrderView[]) {
  return result;
 }
 export function billingRows(orders: OrderView[]): string[][] {
- const rows: string[][] = [["Name","Total T-shirts","Amount Owed","Paid?","Comment"]];
+ const rows: string[][] = [["Full name","Order code","Total T-shirts","Amount Owed","Paid?","Comment"]];
  let totalQuantity=0n, totalOwed=0n;
- for (const [name,customerOrders] of customers(orders)) {
-  const quantity=customerOrders.reduce((sum,o)=>sum+o.lines.reduce((q,l)=>q+BigInt(l.quantity),0n),0n);
-  const owed=customerOrders.reduce((sum,o)=>sum+(o.progress==="COMPLETE" ? 0n : BigInt(cartTotal(o.lines))),0n);
-  const notes=[...new Set(customerOrders.map(o=>o.note).filter(Boolean))].join("\n");
-  rows.push([name,quantity.toString(),decimalCents(owed),"",notes]);totalQuantity+=quantity;totalOwed+=owed;
+ for (const order of sortedOrders(orders)) {
+  const quantity=order.lines.reduce((sum,line)=>sum+BigInt(line.quantity),0n);
+  const owed=order.progress==="COMPLETE" ? 0n : BigInt(cartTotal(order.lines));
+  rows.push([order.fullName,order.code,quantity.toString(),decimalCents(owed),"",order.note]);totalQuantity+=quantity;totalOwed+=owed;
  }
- if (rows.length>1) rows.push([],["Totals",totalQuantity.toString(),decimalCents(totalOwed),"",""]);
+ if (rows.length>1) rows.push([],["Totals","",totalQuantity.toString(),decimalCents(totalOwed),"",""]);
  return rows;
 }
 // Stable IDs and ordered snapshots define a variant; price/progress do not.
@@ -68,6 +67,23 @@ export function productDeliveryRows(orders: OrderView[]): string[][] {
   for(const [name,quantity] of customers) {
    rows.push([first ? productName(line) : "",first ? line.sizeLabel : "",name,quantity.toString(),""]);first=false;
   }
+ }
+ return rows;
+}
+export function itemArtworkDeliveryRows(orders: OrderView[]): string[][] {
+ const rows:string[][]=[["Item","Artwork set","Name","Color","Size","Quantity","Fulfilled"]];
+ const groups=new Map<string,{line:OrderLineView;members:Map<string,{name:string;line:OrderLineView;quantity:bigint}>}>();
+ for(const order of sortedOrders(orders)) for(const line of order.lines) {
+  const key=JSON.stringify([line.styleId,line.artworkSetId,line.styleName,line.artworkSetName]);
+  const section=groups.get(key) ?? {line,members:new Map<string,{name:string;line:OrderLineView;quantity:bigint}>()};
+  const memberKey=JSON.stringify([order.fullName,identity(line)]),previous=section.members.get(memberKey);
+  section.members.set(memberKey,{name:order.fullName,line,quantity:(previous?.quantity ?? 0n)+BigInt(line.quantity)});groups.set(key,section);
+ }
+ const sections=[...groups.entries()].sort(([ka,a],[kb,b])=>compare(a.line.styleName,b.line.styleName)||compare(a.line.artworkSetName,b.line.artworkSetName)||compare(ka,kb));
+ for(const [,section] of sections) {
+  if(rows.length>1)rows.push([]);
+  const members=[...section.members.values()].sort((a,b)=>compare(a.name,b.name)||variantCompare(a.line,b.line));
+  members.forEach(({name,line,quantity},index)=>rows.push([index===0 ? section.line.styleName : "",index===0 ? section.line.artworkSetName : "",name,line.colorName,line.sizeLabel,quantity.toString(),""]));
  }
  return rows;
 }

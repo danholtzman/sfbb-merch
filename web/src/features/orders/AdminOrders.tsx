@@ -28,9 +28,10 @@ export function AdminOrders({ season, csrfToken, onOrdersChanged }: { season: Se
  return <section className="orders-dashboard">
   <div className="order-stats"><article><span>ACTIVE ORDERS</span><strong data-testid="active-orders">{orders ? metrics.activeOrders : "—"}</strong><small>{season.name}</small></article><article><span>ITEMS TO FULFILL</span><strong data-testid="items-to-fulfill">{orders ? metrics.itemsToFulfill.toLocaleString("en-US") : "—"}</strong><small>Open orders only</small></article><article><span>TOTAL OWED</span><strong data-testid="total-owed">{orders ? moneyLabel(metrics.amountOwedCents) : "—"}</strong><small>Collected separately by the band</small></article></div>
   <div className="order-exports">{([
-   ["billing","Billing CSV","Customer totals, amount owed, comments, and a blank Paid? checklist. Excludes cancelled orders."],
+   ["billing","Billing CSV","One row per order: full name, order code, shirt total, amount owed, comments, and a blank Paid? checklist. Excludes cancelled orders."],
    ["member-delivery","Fulfillment by customer CSV","Shirt variants grouped by customer, with quantities and a blank Fulfilled checklist."],
    ["product-delivery","Fulfillment by product CSV","Customers grouped under each shirt variant, with quantities and a blank Fulfilled checklist."],
+   ["item-artwork-delivery","Delivery by item & artwork CSV","Members grouped by shirt style and artwork set, with each color, size, quantity, and a blank Fulfilled checklist."],
    ["manufacturer-order","T-shirt ordering CSV","Total quantities per shirt variant, with a blank Ordered? checklist. Excludes cancelled orders."]
   ] as const).map(([report,label,description])=><div key={report}><button className="secondary" disabled={exporting!==null || !orders} onClick={()=>void download(report)}>{exporting===report ? "Downloading…" : `↓ ${label}`}</button><p>{description}</p></div>)}</div>
   <div className="table-toolbar"><h2>Member orders</h2><input aria-label="Search orders" placeholder="Search member or order code" maxLength={128} value={search} onChange={e=>setSearch(e.target.value)} /></div>
