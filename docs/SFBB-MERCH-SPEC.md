@@ -298,7 +298,7 @@ Updated 2026-10-20 to match the owner's supplied CSV layouts, omitting email add
 
 ### File names
 
-Keep the established season/date filenames: `sfbb-{season-name-slug}-{opening-date}-{report}.csv`. Report suffixes are `billing`, `member-delivery`, `product-delivery`, and `manufacturer-order`. The `product-delivery` download groups by item and artwork set; there is no separate item/artwork export. Slugs normalize Unicode, remove combining accents, lowercase, replace runs outside ASCII letters/digits with hyphens, trim boundary hyphens, limit to 80 characters, and use `season` if empty.
+Keep the established season/date filenames: `sfbb-{season-name-slug}-{opening-date}-{report}.csv`. Filename suffixes are `billing`, `fulfillment-by-member`, `fulfillment-by-product`, and `manufacturer-order`. The existing API report IDs `member-delivery` and `product-delivery` remain unchanged. The `product-delivery` download groups by item and artwork set; there is no separate item/artwork export. Slugs normalize Unicode, remove combining accents, lowercase, replace runs outside ASCII letters/digits with hyphens, trim boundary hyphens, limit to 80 characters, and use `season` if empty.
 
 ### Billing CSV
 
@@ -311,30 +311,30 @@ One row per non-cancelled order, sorted by full name then order code. Full name 
 ### Fulfillment by customer CSV
 
 ```text
-Name,Product Name,Size,Quantity,Fulfilled
+Name,Item,Artwork set,Color,Size,Quantity,Fulfilled
 ```
 
-Group by exact customer name and combine matching variants across that customer's orders, including delivered/Complete orders. Print the name on the first item row only, with a blank separator row between customers. Repeat product name/size for each variant; leave Fulfilled blank.
+Group by exact customer name and combine matching variants across that customer's orders, including delivered/Complete orders. Print the name on the first item row only, with a blank separator row between customers. Repeat item, artwork set, color and size for each variant; leave Fulfilled blank.
 
 ### Fulfillment by product CSV
 
 ```text
-Item,Artwork set,Name,Color,Size,Quantity,Fulfilled
+Item,Artwork set,Color,Size,Quantity,Name,Fulfilled
 ```
 
-A member-delivery view grouped by shirt item and artwork set, rather than by name or individual color/size variant. Keep all colors and sizes of that item/artwork pair in one section. List customers within each section with their ordered color, size and combined matching-variant quantities. Print Item and Artwork set only on the first row of the section and put a blank separator between sections. Fulfilled remains blank. Include delivered/Complete orders and exclude cancellations. Stable style/set IDs and ordered names distinguish sections; full variant/swatch identity distinguishes rows. Sort sections by item/artwork names and stable identity, then customers by exact name and variants by color/size. Use the `product-delivery` report suffix.
+A member-delivery view grouped by shirt item and artwork set, rather than by name or individual color/size variant. Keep all colors and sizes of that item/artwork pair in one section. List customers within each section with their ordered color, size and combined matching-variant quantities. Print Item and Artwork set only on the first row of the section and put a blank separator between sections. Fulfilled remains blank. Include delivered/Complete orders and exclude cancellations. Stable style/set IDs and ordered names distinguish sections; full variant/swatch identity distinguishes rows. Sort sections by item/artwork names and stable identity, then customers by exact name and variants by color/size. Use the `fulfillment-by-product` filename suffix.
 
 ### T-shirt ordering CSV
 
 ```text
-Product Name,Size,Total,Ordered?
+Item,Artwork set,Color,Size,Total,Ordered?
 ```
 
 Combine matching variants across all non-cancelled orders regardless of progress. Print one row per variant, with Ordered? blank. This remains the `manufacturer-order` endpoint/filename suffix.
 
 ### Product labels, identities, and sorting
 
-Product Name combines ordered style name, color name and artwork-set name separated by ` — ` so artwork designs are distinguishable within the reference layout's single product column. Use ordered snapshots, never current renamed colors or changed prices. Matching variants retain stable style/set/color/size identities and ordered names/swatches. Unit price does not split fulfillment/purchasing variants. Different styles or historical swatches remain separate even if visible labels coincide.
+Item, Artwork set and Color are separate columns in both fulfillment exports and the T-shirt ordering export. Product fulfillment puts Color third, Size fourth, Quantity fifth, Name sixth and Fulfilled seventh. Use ordered snapshots, never current renamed colors or changed prices. Matching variants retain stable style/set/color/size identities and ordered names/swatches. Unit price does not split fulfillment/purchasing variants. Different styles or historical swatches remain separate even if visible labels coincide.
 
 Sort customers by exact name and variants by style name, color name, artwork-set name, then standard clothing size order (XXXS through 6XL; 2X/XXL aliases sort with 2XL and 3X/XXXL with 3XL). Unknown size labels follow standard sizes in deterministic lexical order. Stable identity breaks display ties. Preserve existing per-order identities in the application; name grouping applies only to fulfillment exports. Do not merge different spellings/case variants of customer names.
 

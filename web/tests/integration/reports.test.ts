@@ -10,30 +10,30 @@ it("billing starts with full name and order code, preserves separate orders, and
 });
 it("customer fulfillment matches grouped sample rows and combines customer variants across orders", () => {
  const result = deliveryRows([make({ fullName: "Bea", code: "CCC333", progress: "COMPLETE" }), make({ code: "BBB222", progress: "DELIVERED_UNPAID" }), make({ code: "AAA222", lines: [line, { ...line, id: "duplicate", quantity: 1 }, { ...line, id: "historical", colorName: "Old blue", colorHex: "#000080" }] }), make({ cancelled: true })]);
- expect(result).toEqual([["Name","Product Name","Size","Quantity","Fulfilled"], ["Alex","Classic Tee — Blue — Season pair","L","5",""], ["","Classic Tee — Old blue — Season pair","L","2",""], [], ["Bea","Classic Tee — Blue — Season pair","L","2",""]]);
+ expect(result).toEqual([["Name","Item","Artwork set","Color","Size","Quantity","Fulfilled"], ["Alex","Classic Tee","Season pair","Blue","L","5",""], ["","Classic Tee","Season pair","Old blue","L","2",""], [], ["Bea","Classic Tee","Season pair","Blue","L","2",""]]);
 });
 it("product fulfillment groups colors and sizes together while separating artwork sets and historical identities",()=>{
  const red={...line,colorId:"red",colorName:"Red",colorHex:"#FF0000",quantity:1};
  const other={...line,artworkSetId:"encore",artworkSetName:"Encore",quantity:1};
  const orders=[make(),make({code:"NEXT22",lines:[{...line,quantity:1}]}),make({fullName:"Bea",progress:"COMPLETE",lines:[{...line,sizeId:"small",sizeLabel:"S",quantity:1},red]}),make({fullName:"Zoe",progress:"DELIVERED_UNPAID",lines:[other]}),make({cancelled:true})];
  expect(productDeliveryRows(orders)).toEqual([
-  ["Item","Artwork set","Name","Color","Size","Quantity","Fulfilled"],
-  ["Classic Tee","Encore","Zoe","Blue","L","1",""],[],
-  ["Classic Tee","Season pair","Alex","Blue","L","3",""],
-  ["","","Bea","Blue","S","1",""],
-  ["","","Bea","Red","L","1",""]
+  ["Item","Artwork set","Color","Size","Quantity","Name","Fulfilled"],
+  ["Classic Tee","Encore","Blue","L","1","Zoe",""],[],
+  ["Classic Tee","Season pair","Blue","L","3","Alex",""],
+  ["","","Blue","S","1","Bea",""],
+  ["","","Red","L","1","Bea",""]
  ]);
  expect(productDeliveryRows([...orders].reverse())).toEqual(productDeliveryRows(orders));
  const distinct=productDeliveryRows([make(),make({lines:[{...line,styleId:"same-name-other-style"}]}),make({lines:[{...line,colorHex:"#000080"}]})]);
  expect(distinct.filter(r=>r[0]==="Classic Tee")).toHaveLength(2);
- expect(distinct.filter(r=>r[5]==="2")).toHaveLength(3);
+ expect(distinct.filter(r=>r[4]==="2")).toHaveLength(3);
 });
 it("shirt ordering matches the sample and retains historical identities across all progress states", () => {
  const orders = [make(), make({ progress: "DELIVERED_UNPAID" }), make({ progress: "COMPLETE" }), make({ lines: [{ ...line, styleId: "tee-b", quantity: 1 }] }), make({ lines: [{ ...line, colorHex: "#000080", quantity: 1 }] }), make({ lines: [{ ...line, styleName: "Another tee", quantity: 1 }] }), make({ cancelled: true })];
- expect(manufacturerRows(orders)).toEqual([["Product Name","Size","Total","Ordered?"], ["Another tee — Blue — Season pair","L","1",""], ["Classic Tee — Blue — Season pair","L","1",""], ["Classic Tee — Blue — Season pair","L","6",""], ["Classic Tee — Blue — Season pair","L","1",""]]);
+ expect(manufacturerRows(orders)).toEqual([["Item","Artwork set","Color","Size","Total","Ordered?"], ["Another tee","Season pair","Blue","L","1",""], ["Classic Tee","Season pair","Blue","L","1",""], ["Classic Tee","Season pair","Blue","L","6",""], ["Classic Tee","Season pair","Blue","L","1",""]]);
  expect(manufacturerRows([...orders].reverse())).toEqual(manufacturerRows(orders));
  const sizes=["3XL","L","XS","2XL","S","XL","M"];
- expect(manufacturerRows([make({lines:sizes.map(size=>({...line,sizeId:size,sizeLabel:size}))})]).slice(1).map(r=>r[1])).toEqual(["XS","S","M","L","XL","2XL","3XL"]);
+ expect(manufacturerRows([make({lines:sizes.map(size=>({...line,sizeId:size,sizeLabel:size}))})]).slice(1).map(r=>r[3])).toEqual(["XS","S","M","L","XL","2XL","3XL"]);
 });
 it("CSV quotes every cell, escapes multiline Unicode text, adds BOM/CRLF and neutralizes formula prefixes including whitespace", () => {
  const bytes = csvEncode([["Name", "Note"], ['Zoë, "Brass"', "Line 1\nLine 2"], ["=SUM(1)", "+1"], ["-1", "@test"], ["\tformula", "\rformula"], ["  =SUM(1)", "0.00"]]);
@@ -43,15 +43,15 @@ it("CSV quotes every cell, escapes multiline Unicode text, adds BOM/CRLF and neu
 it("filenames normalize accented names, cap slugs at 80 characters, include the opening date and fallback safely", () => {
  const season = { name: "Été & Brass / 2027", opensOn: "2027-09-01" } as SeasonView;
  expect(reportFilename(season, "billing")).toBe("sfbb-ete-brass-2027-2027-09-01-billing.csv");
- expect(reportFilename({ ...season, name: "音楽" }, "member-delivery")).toBe("sfbb-season-2027-09-01-member-delivery.csv");
+ expect(reportFilename({ ...season, name: "音楽" }, "member-delivery")).toBe("sfbb-season-2027-09-01-fulfillment-by-member.csv");
  expect(reportFilename({ ...season, name: "a".repeat(90) }, "manufacturer-order")).toBe(`sfbb-${"a".repeat(80)}-2027-09-01-manufacturer-order.csv`);
 });
 it("empty exports contain only their exact header and can aggregate quantities above a single line's bound", () => {
  expect(billingRows([])).toEqual([["Full name","Order code","Total T-shirts","Amount Owed","Paid?","Comment"]]);
- expect(productDeliveryRows([])).toEqual([["Item","Artwork set","Name","Color","Size","Quantity","Fulfilled"]]);
- expect(deliveryRows([])).toEqual([["Name","Product Name","Size","Quantity","Fulfilled"]]);
- expect(manufacturerRows([])).toEqual([["Product Name","Size","Total","Ordered?"]]);
- expect(manufacturerRows([make({ lines: [{ ...line, quantity: 2147483647 }] }), make({ lines: [{ ...line, quantity: 2147483647 }] })])[1][2]).toBe("4294967294");
+ expect(productDeliveryRows([])).toEqual([["Item","Artwork set","Color","Size","Quantity","Name","Fulfilled"]]);
+ expect(deliveryRows([])).toEqual([["Name","Item","Artwork set","Color","Size","Quantity","Fulfilled"]]);
+ expect(manufacturerRows([])).toEqual([["Item","Artwork set","Color","Size","Total","Ordered?"]]);
+ expect(manufacturerRows([make({ lines: [{ ...line, quantity: 2147483647 }] }), make({ lines: [{ ...line, quantity: 2147483647 }] })])[1][4]).toBe("4294967294");
 });
 it("real DB exports are season scoped, snapshot based, and reject member/revoked sessions", async () => {
  const { testDatabase, seedCatalog, lineData } = await import("../fixtures/database"); const { createReportService } = await import("../../src/features/reports/service"); const { randomUUID } = await import("node:crypto");
@@ -65,11 +65,11 @@ it("real DB exports are season scoped, snapshot based, and reject member/revoked
   await database.client.order.create({ data: { seasonId: first.season.id, code: "BR4SS4", fullName: "Cancelled", cancelled: true, lines: { create: lineData(first) } } });
   await database.client.styleColor.update({ where: { id: first.color.id }, data: { name: "Current", hex: "#000000" } });
   const report = await service.export(ctx,first.season.id,"member-delivery");
-  expect(report.filename).toBe("sfbb-test-season-2026-10-01-member-delivery.csv");
-  expect(new TextDecoder().decode(report.bytes)).toBe('"Name","Product Name","Size","Quantity","Fulfilled"\r\n"Chosen","Classic Tee — Blue — Season artwork","L","2",""\r\n');
+  expect(report.filename).toBe("sfbb-test-season-2026-10-01-fulfillment-by-member.csv");
+  expect(new TextDecoder().decode(report.bytes)).toBe('"Name","Item","Artwork set","Color","Size","Quantity","Fulfilled"\r\n"Chosen","Classic Tee","Season artwork","Blue","L","2",""\r\n');
   const productReport=await service.export(ctx,first.season.id,"product-delivery");
-  expect(productReport.filename).toBe("sfbb-test-season-2026-10-01-product-delivery.csv");
-  expect(new TextDecoder().decode(productReport.bytes)).toBe('"Item","Artwork set","Name","Color","Size","Quantity","Fulfilled"\r\n"Classic Tee","Season artwork","Chosen","Blue","L","2",""\r\n');
+  expect(productReport.filename).toBe("sfbb-test-season-2026-10-01-fulfillment-by-product.csv");
+  expect(new TextDecoder().decode(productReport.bytes)).toBe('"Item","Artwork set","Color","Size","Quantity","Name","Fulfilled"\r\n"Classic Tee","Season artwork","Blue","L","2","Chosen",""\r\n');
   await expect(service.export({ ...ctx, actor: { ...ctx.actor, role: "member" } },first.season.id,"billing")).rejects.toMatchObject({ status: 403 });
   await database.client.session.delete({ where: { id: session.id } });
   await expect(service.export(ctx,first.season.id,"billing")).rejects.toMatchObject({ status: 401 });

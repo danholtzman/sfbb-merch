@@ -34,7 +34,6 @@ function group(lines: OrderLineView[]) {
  for (const line of lines) { const key = identity(line), previous = result.get(key); result.set(key, { line: previous?.line ?? line, quantity: (previous?.quantity ?? 0n)+BigInt(line.quantity) }); }
  return result;
 }
-function productName(l: OrderLineView): string { return `${l.styleName} — ${l.colorName} — ${l.artworkSetName}`; }
 function sizeRank(label: string): number {
  const standard=["XXXS","XXS","XS","S","M","L","XL","2XL","3XL","4XL","5XL","6XL"];
  const normalized=label.toUpperCase().replace(/\s/g,"").replace(/^(\d+)X$/, "$1XL").replace(/^XXL$/,"2XL").replace(/^XXXL$/,"3XL");
@@ -46,16 +45,16 @@ function variantCompare(a: OrderLineView,b: OrderLineView): number {
 }
 function sortedGroups(lines: OrderLineView[]) { return [...group(lines).values()].sort((a,b)=>variantCompare(a.line,b.line)); }
 export function deliveryRows(orders: OrderView[]): string[][] {
- const rows: string[][]=[["Name","Product Name","Size","Quantity","Fulfilled"]];
+ const rows: string[][]=[["Name","Item","Artwork set","Color","Size","Quantity","Fulfilled"]];
  for (const [name,customerOrders] of customers(orders)) {
   const variants=sortedGroups(customerOrders.flatMap(o=>o.lines));if(!variants.length)continue;
   if(rows.length>1)rows.push([]);
-  variants.forEach(({line,quantity},index)=>rows.push([index===0 ? name : "",productName(line),line.sizeLabel,quantity.toString(),""]));
+  variants.forEach(({line,quantity},index)=>rows.push([index===0 ? name : "",line.styleName,line.artworkSetName,line.colorName,line.sizeLabel,quantity.toString(),""]));
  }
  return rows;
 }
 export function productDeliveryRows(orders: OrderView[]): string[][] {
- const rows:string[][]=[["Item","Artwork set","Name","Color","Size","Quantity","Fulfilled"]];
+ const rows:string[][]=[["Item","Artwork set","Color","Size","Quantity","Name","Fulfilled"]];
  const groups=new Map<string,{line:OrderLineView;members:Map<string,{name:string;line:OrderLineView;quantity:bigint}>}>();
  for(const order of sortedOrders(orders)) for(const line of order.lines) {
   const key=JSON.stringify([line.styleId,line.artworkSetId,line.styleName,line.artworkSetName]);
@@ -67,12 +66,12 @@ export function productDeliveryRows(orders: OrderView[]): string[][] {
  for(const [,section] of sections) {
   if(rows.length>1)rows.push([]);
   const members=[...section.members.values()].sort((a,b)=>compare(a.name,b.name)||variantCompare(a.line,b.line));
-  members.forEach(({name,line,quantity},index)=>rows.push([index===0 ? section.line.styleName : "",index===0 ? section.line.artworkSetName : "",name,line.colorName,line.sizeLabel,quantity.toString(),""]));
+  members.forEach(({name,line,quantity},index)=>rows.push([index===0 ? section.line.styleName : "",index===0 ? section.line.artworkSetName : "",line.colorName,line.sizeLabel,quantity.toString(),name,""]));
  }
  return rows;
 }
 export function manufacturerRows(orders: OrderView[]): string[][] {
- return [["Product Name","Size","Total","Ordered?"], ...sortedGroups(orders.filter(o=>!o.cancelled).flatMap(o=>o.lines)).map(({line,quantity})=>[productName(line),line.sizeLabel,quantity.toString(),""])];
+ return [["Item","Artwork set","Color","Size","Total","Ordered?"], ...sortedGroups(orders.filter(o=>!o.cancelled).flatMap(o=>o.lines)).map(({line,quantity})=>[line.styleName,line.artworkSetName,line.colorName,line.sizeLabel,quantity.toString(),""])];
 }
 export function csvEncode(rows: string[][]): Uint8Array {
  const cell = (value: string) => { const safe = /^[\t\r]|^\s*[=+\-@]/.test(value) ? `'${value}` : value; return `"${safe.replaceAll('"','""')}"`; };
@@ -80,5 +79,6 @@ export function csvEncode(rows: string[][]): Uint8Array {
 }
 export function reportFilename(season: SeasonView, report: Report): string {
  const slug = season.name.normalize("NFKD").replace(/\p{M}/gu,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,80).replace(/-+$/g,"") || "season";
- return `sfbb-${slug}-${season.opensOn}-${report}.csv`;
+ const suffix = report === "product-delivery" ? "fulfillment-by-product" : report === "member-delivery" ? "fulfillment-by-member" : report;
+ return `sfbb-${slug}-${season.opensOn}-${suffix}.csv`;
 }

@@ -37,18 +37,19 @@ test.describe("admin order management", { tag: "@admin-orders" }, () => {
   await expect(page.getByRole("button",{name:"↓ Delivery by item & artwork CSV",exact:true})).toHaveCount(0);
   const expected = [
    ["Billing CSV",["Full name","Order code","Total T-shirts","Amount Owed","Paid?","Comment"],4,"billing"],
-   ["Fulfillment by customer CSV",["Name","Product Name","Size","Quantity","Fulfilled"],3,"member-delivery"],
-   ["Fulfillment by product CSV",["Item","Artwork set","Name","Color","Size","Quantity","Fulfilled"],2,"product-delivery"],
-   ["T-shirt ordering CSV",["Product Name","Size","Total","Ordered?"],1,"manufacturer-order"]
+   ["Fulfillment by customer CSV",["Name","Item","Artwork set","Color","Size","Quantity","Fulfilled"],3,"fulfillment-by-member"],
+   ["Fulfillment by product CSV",["Item","Artwork set","Color","Size","Quantity","Name","Fulfilled"],2,"fulfillment-by-product"],
+   ["T-shirt ordering CSV",["Item","Artwork set","Color","Size","Total","Ordered?"],1,"manufacturer-order"]
   ] as const;
   for (const [button,header,count,suffix] of expected) {
    const downloadPromise=page.waitForEvent("download"); await page.getByRole("button",{name:`↓ ${button}`,exact:true}).click(); const download=await downloadPromise;
    expect(download.suggestedFilename()).toContain(`${fixture.season.opensOn}-${suffix}.csv`); expect(download.suggestedFilename()).toContain("sfbb-member-ui-");
    const bytes=await readFile((await download.path())!); expect([...bytes.subarray(0,3)]).toEqual([239,187,191]); const rows=parseCsv(bytes.toString("utf8")); expect(rows[0]).toEqual(header); expect(rows).toHaveLength(count+1); expect(bytes.toString("utf8")).not.toContain("Cancelled Member");
    if (suffix==="billing") { expect(rows.slice(1,3).map(r=>[r[0],r[1],r[2],r[3]])).toEqual([["Alex Revised",orders[0].code,"4","0.00"],["Bea Chen",orders[1].code,"3","75.00"]]); expect(rows[1][5]).toBe('Pickup, "please"\nThank you'); }
-   if (suffix==="manufacturer-order") expect(rows[1]).toEqual([expect.any(String),"L","7",""]);
+   if (suffix==="manufacturer-order") expect(rows[1]).toEqual([fixture.style.name,fixture.set.name,"Blue","L","7",""]);
    if (suffix==="billing") expect(rows.at(-1)).toEqual(["Totals","","7","75.00","",""]);
-   if (suffix==="product-delivery") { expect(rows.slice(1).map(r=>[r[2],r[4],r[5],r[6]])).toEqual([["Alex Revised","L","4",""],["Bea Chen","L","3",""]]);expect(rows[2].slice(0,2)).toEqual(["",""]); }
+   if (suffix==="fulfillment-by-member") expect(rows[1]).toEqual(["Alex Revised",fixture.style.name,fixture.set.name,"Blue","L","4",""]);
+   if (suffix==="fulfillment-by-product") { expect(rows.slice(1).map(r=>[r[5],r[3],r[4],r[6]])).toEqual([["Alex Revised","L","4",""],["Bea Chen","L","3",""]]);expect(rows[2].slice(0,2)).toEqual(["",""]); }
   }
   await page.screenshot({path:info.outputPath("admin-orders.png"),fullPage:true});
  });
